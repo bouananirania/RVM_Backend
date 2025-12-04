@@ -10,6 +10,7 @@ const machineSchema = new Schema({
   total_earnings: { type: Number, default: 0 },
   last_online_at: { type: Date },
   photo_url: { type: String },
+  ai_accuracy: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
