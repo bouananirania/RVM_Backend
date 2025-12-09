@@ -93,6 +93,7 @@ exports.getPoints = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 exports.searchClients = async (req, res) => {
   try {
     const { name, phone, city, minPoints, maxPoints, minKg, maxKg } = req.query;
@@ -128,5 +129,24 @@ exports.searchClients = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+const Transaction = require("../models/Transaction");
+
+exports.getClientHistory = async (req, res) => {
+  try {
+    const clientId = req.params.clientId;
+
+    const history = await Transaction.find({ performed_by: clientId })
+      .populate("machine", "name latitude longitude") // juste ce qu’il faut
+      .select("machine amount type created_at")        // juste ces colonnes
+      .sort({ created_at: -1 });
+
+    res.json(history);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
   }
 };

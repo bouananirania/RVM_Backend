@@ -6,6 +6,7 @@ const clientSchema = new Schema({
   password_hash: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
+  city: { type: String, required: true },
   phone: { type: String, unique: true, required: true },
   points: { type: Number, default: 0 },
   total_recycled_kg: { type: Number, default: 0 },
