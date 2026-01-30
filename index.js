@@ -1,4 +1,4 @@
-import connectDB from ".config/config.js";
+import connectDB from "./config/config.js";
 import dotenv from "dotenv";
 import express from "express";
 
