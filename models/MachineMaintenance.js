@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const machineMaintenanceSchema = new Schema({
@@ -8,4 +8,5 @@ const machineMaintenanceSchema = new Schema({
   date_performed: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('MachineMaintenance', machineMaintenanceSchema);
+const MachineMaintenance = mongoose.model('MachineMaintenance', machineMaintenanceSchema);
+export default MachineMaintenance;

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const machineSchema = new Schema({
@@ -26,4 +26,5 @@ machineSchema.virtual('recyclingBins', {
 machineSchema.set('toObject', { virtuals: true });
 machineSchema.set('toJSON', { virtuals: true });
 
-module.exports = mongoose.model('Machine', machineSchema);
+const Machine = mongoose.model('Machine', machineSchema);
+export default Machine;

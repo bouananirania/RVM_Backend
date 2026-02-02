@@ -1,8 +1,8 @@
-const Client = require('../models/Client');
-const bcrypt = require('bcrypt');
+import bcrypt from 'bcrypt';
+import Client from '../models/Client.js';
 
 // SIGNUP
-exports.signup = async (req, res) => {
+const signup = async (req, res) => {
   try {
     const { username, email, phone, password, confirmPassword, name, city } = req.body;
 
@@ -34,7 +34,7 @@ exports.signup = async (req, res) => {
 };
 
 // LOGIN
-exports.login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -54,14 +54,14 @@ exports.login = async (req, res) => {
 };
 
 // LOGOUT
-exports.logout = async (req, res) => {
+const logout = async (req, res) => {
   req.session.destroy(() => {
     res.json({ message: "Logged out" });
   });
 };
 
 // CHANGE PASSWORD
-exports.changePassword = async (req, res) => {
+const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
 
@@ -84,7 +84,7 @@ exports.changePassword = async (req, res) => {
 };
 
 // GET POINTS DU CLIENT
-exports.getPoints = async (req, res) => {
+const getPoints = async (req, res) => {
   try {
     const client = await Client.findById(req.session.clientId).select("points total_recycled_kg");
     res.json(client);
@@ -94,7 +94,7 @@ exports.getPoints = async (req, res) => {
   }
 };
 
-exports.searchClients = async (req, res) => {
+const searchClients = async (req, res) => {
   try {
     const { name, phone, city, minPoints, maxPoints, minKg, maxKg } = req.query;
 
@@ -132,9 +132,9 @@ exports.searchClients = async (req, res) => {
   }
 };
 
-const Transaction = require("../models/Transaction");
+import Transaction from "../models/Transaction.js";
 
-exports.getClientHistory = async (req, res) => {
+const getClientHistory = async (req, res) => {
   try {
     const clientId = req.params.clientId;
 
@@ -149,4 +149,14 @@ exports.getClientHistory = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
   }
+};
+
+export default {
+  signup,
+  login,
+  logout,
+  changePassword,
+  getPoints,
+  searchClients,
+  getClientHistory
 };

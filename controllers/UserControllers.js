@@ -1,8 +1,10 @@
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
+import bcrypt from 'bcrypt';
+import User from '../models/User.js';
 
+// =====================
 // CREATE USER (ADMIN ONLY)
-exports.createUser = async (req, res) => {
+// =====================
+const createUser = async (req, res) => {
   try {
     const { username, email, phone, password, role } = req.body;
 
@@ -31,8 +33,10 @@ exports.createUser = async (req, res) => {
   }
 };
 
+// =====================
 // LOGIN (ALL ROLES)
-exports.login = async (req, res) => {
+// =====================
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -52,15 +56,19 @@ exports.login = async (req, res) => {
   }
 };
 
+// =====================
 // LOGOUT
-exports.logout = async (req, res) => {
+// =====================
+const logout = async (req, res) => {
   req.session.destroy(() => {
     res.json({ message: "Logged out" });
   });
 };
 
+// =====================
 // GET ALL USERS BY ROLE
-exports.getUsersByRole = async (req, res) => {
+// =====================
+const getUsersByRole = async (req, res) => {
   try {
     const { role } = req.params;
 
@@ -76,8 +84,10 @@ exports.getUsersByRole = async (req, res) => {
   }
 };
 
+// =====================
 // SEARCH USERS BY ROLE WITH FILTERS
-exports.searchUsersByRole = async (req, res) => {
+// =====================
+const searchUsersByRole = async (req, res) => {
   try {
     const { role } = req.params;
     const { username, phone, city, startDate, endDate } = req.query;
@@ -90,7 +100,7 @@ exports.searchUsersByRole = async (req, res) => {
 
     if (username) filters.username = { $regex: username, $options: "i" };
     if (phone) filters.phone = { $regex: phone, $options: "i" };
-    if (city) filters.city = { $regex: city, $options: "i" }; // Assurez-vous que city existe dans le schema User si nécessaire
+    if (city) filters.city = { $regex: city, $options: "i" };
     if (startDate || endDate) {
       filters.created_at = {};
       if (startDate) filters.created_at.$gte = new Date(startDate);
@@ -103,4 +113,15 @@ exports.searchUsersByRole = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+};
+
+// =====================
+// EXPORT DEFAULT
+// =====================
+export default {
+  createUser,
+  login,
+  logout,
+  getUsersByRole,
+  searchUsersByRole
 };

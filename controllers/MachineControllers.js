@@ -1,7 +1,9 @@
-const Machine = require('../models/Machine');
+import Machine from '../models/Machine.js';
 
+// =====================
 // GET ALL MACHINES
-exports.getAllMachines = async (req, res) => {
+// =====================
+const getAllMachines = async (req, res) => {
   try {
     const machines = await Machine.find().populate("recyclingBins");
     res.json(machines);
@@ -11,10 +13,10 @@ exports.getAllMachines = async (req, res) => {
   }
 };
 
-const Machine = require('../models/Machine');
-
-// SINGLE SEARCH ENDPOINT
-exports.searchMachines = async (req, res) => {
+// =====================
+// SEARCH MACHINES
+// =====================
+const searchMachines = async (req, res) => {
   try {
     const { status, type, lat, lng, radius = 0.05 } = req.query;
 
@@ -62,3 +64,10 @@ exports.searchMachines = async (req, res) => {
   }
 };
 
+// =====================
+// EXPORT DEFAULT
+// =====================
+export default {
+  getAllMachines,
+  searchMachines
+};

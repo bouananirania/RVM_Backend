@@ -1,29 +1,25 @@
-import express from "express";
-import User from "../models/User.js";
-
+import express from 'express';
 const router = express.Router();
 
-router.post("/", async (req, res) => {
-  try {
-    const { username, password_hash, email, role, phone, city } = req.body;
-    const newUser = new User({ username, password_hash, email, role, phone, city });
-    await newUser.save();
-    res.status(201).json({ message: "User created successfully", user: newUser });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ message: "Username or email already exists" });
-    }
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+import userController from '../controllers/UserControllers.js';
 
-router.get("/", async (req, res) => {
-  try {
-    const users = await User.find();
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+// AUTH
+
+// Login
+router.post('/login', userController.login);
+
+// Logout
+router.post('/logout', userController.logout);
+
+// ADMIN – USER MANAGEMENT
+
+// Create user (admin only – à protéger plus tard par middleware)
+router.post('/', userController.createUser);
+
+// Get all users by role
+router.get('/role/:role', userController.getUsersByRole);
+
+// Search users by role with filters
+router.get('/role/:role/search', userController.searchUsersByRole);
 
 export default router;
