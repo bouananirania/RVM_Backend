@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const clientSchema = new Schema({
   username: { type: String, required: true, unique: true },
-  password_hash: { type: String, required: true },
+  password_hash: { type: String, required: true },// no need
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   city: { type: String, required: true },

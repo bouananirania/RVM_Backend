@@ -1,6 +1,32 @@
 import Machine from '../models/Machine.js';
 
 // =====================
+//create machine (admin only)
+// =====================
+const createMachine = async (req, res) => {
+  try {
+    const { id, name, latitude, longitude, status, current_cash, total_earnings, last_online_at, photo_url,ai_accuracy,created_at,updated_at} = req.body;
+    const machine = new Machine({
+      id,
+      name,
+      latitude,
+      longitude,
+      status,
+      current_cash,
+      total_earnings,
+      last_online_at,
+      photo_url,
+      ai_accuracy,
+      created_at,
+      updated_at
+    });
+    await machine.save();
+    res.status(201).json(machine);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+// =====================
 // GET ALL MACHINES
 // =====================
 const getAllMachines = async (req, res) => {
@@ -24,6 +50,10 @@ const searchMachines = async (req, res) => {
     // 1) Construire les filtres simples (status + location)
     // -----------------------------
     let filters = {};
+    //FILTRE BY NAME
+    if (req.query.name) {
+      filters.name = { $regex: req.query.name, $options: "i" };
+    }
 
     // FILTER BY STATUS
     if (status) {

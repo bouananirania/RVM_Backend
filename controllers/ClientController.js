@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import Client from '../models/Client.js';
 
-// SIGNUP
+// SIGNUP // no need
 const signup = async (req, res) => {
   try {
     const { username, email, phone, password, confirmPassword, name, city } = req.body;
@@ -33,7 +33,7 @@ const signup = async (req, res) => {
   }
 };
 
-// LOGIN
+// LOGIN // no need
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -53,14 +53,14 @@ const login = async (req, res) => {
   }
 };
 
-// LOGOUT
+// LOGOUT // no need
 const logout = async (req, res) => {
   req.session.destroy(() => {
     res.json({ message: "Logged out" });
   });
 };
 
-// CHANGE PASSWORD
+// CHANGE PASSWORD // no need
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -93,7 +93,7 @@ const getPoints = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
+// RECHERCHER CLIENTS AVEC FILTRES
 const searchClients = async (req, res) => {
   try {
     const { name, phone, city, minPoints, maxPoints, minKg, maxKg } = req.query;

@@ -2,12 +2,13 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const machineSchema = new Schema({
+  id : { type: String, required: true, unique: true },
   name: { type: String, required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
   status: { type: String, enum: ['actif','inactif','en_panne'], default: 'actif' },
-  current_cash: { type: Number, default: 0 },
-  total_earnings: { type: Number, default: 0 },
+  current_cash: { type: Number, default: 0 },//pas nécessaire pour le moment
+  total_earnings: { type: Number, default: 0 },//pas nécessaire pour le moment
   last_online_at: { type: Date },
   photo_url: { type: String },
   ai_accuracy: { type: Number, default: 0 },
