@@ -2,10 +2,11 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const machineSchema = new Schema({
-  id : { type: String, required: true, unique: true },
+  machine_id : { type: String, required: true, unique: true },
   name: { type: String, required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
+  city: { type: String },
   status: { type: String, enum: ['actif','inactif','en_panne'], default: 'actif' },
   last_online_at: { type: Date },
   photo_url: { type: String },
@@ -17,6 +18,13 @@ const machineSchema = new Schema({
 // Virtual pour récupérer tous les bacs de la machine
 machineSchema.virtual('recyclingBins', {
   ref: 'RecyclingBin',
+  localField: '_id',
+  foreignField: 'machine'
+});
+
+// Virtual pour récupérer tous les produits recyclés de la machine
+machineSchema.virtual('recycledProducts', {
+  ref: 'RecycledProduct',
   localField: '_id',
   foreignField: 'machine'
 });

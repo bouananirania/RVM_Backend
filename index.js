@@ -7,6 +7,8 @@ import connectDB from "./config/config.js";
 import machineRoutes from './routes/MachineRoutes.js';
 import notifRoutes from './routes/NotificationRoutes.js';
 import userRoutes from './routes/UserRoutes.js';
+import binRoutes from './routes/RecyclingBinRoutes.js';
+import productRoutes from './routes/RecycledProductRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -29,6 +31,8 @@ app.use(session({
 app.use("/user", userRoutes);
 app.use("/machine", machineRoutes);
 app.use("/notif", notifRoutes);
+app.use("/bin", binRoutes);
+app.use("/product", productRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log("Server running on port " + process.env.PORT);

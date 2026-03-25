@@ -6,7 +6,7 @@ import User from '../models/User.js';
 // =====================
 const createUser = async (req, res) => {
   try {
-    const { username, email, phone, city, password, role } = req.body;
+    const { username, nomcomplet, adress, email, phone, city, password, role } = req.body;
 
     if (!['admin','technicien','videur'].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
@@ -19,6 +19,8 @@ const createUser = async (req, res) => {
 
     const user = new User({
       username,
+      nomcomplet,
+      adress,
       email,
       phone,
       city,

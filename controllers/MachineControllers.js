@@ -5,20 +5,17 @@ import Machine from '../models/Machine.js';
 // =====================
 const createMachine = async (req, res) => {
   try {
-    const { id, name, latitude, longitude, status, current_cash, total_earnings, last_online_at, photo_url,ai_accuracy,created_at,updated_at} = req.body;
+    const { machine_id, name, latitude, longitude, city, status, last_online_at, photo_url, ai_accuracy } = req.body;
     const machine = new Machine({
-      id,
+      machine_id,
       name,
       latitude,
       longitude,
+      city,
       status,
-      current_cash,
-      total_earnings,
       last_online_at,
       photo_url,
-      ai_accuracy,
-      created_at,
-      updated_at
+      ai_accuracy
     });
     await machine.save();
     res.status(201).json(machine);
@@ -31,7 +28,9 @@ const createMachine = async (req, res) => {
 // =====================
 const getAllMachines = async (req, res) => {
   try {
-    const machines = await Machine.find().populate("recyclingBins");
+    const machines = await Machine.find()
+      .populate("recyclingBins")
+      .populate("recycledProducts");
     res.json(machines);
 
   } catch (err) {
