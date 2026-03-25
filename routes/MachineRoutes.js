@@ -8,5 +8,7 @@ router.get('/', machineController.getAllMachines);
 
 // Search machines (status, type, location, radius)
 router.get('/search', machineController.searchMachines);
+// Create machine (admin only)
+router.post('/create', machineController.createMachine);
 
 export default router;
