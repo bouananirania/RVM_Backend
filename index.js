@@ -3,7 +3,7 @@ import express from "express";
 import session from "express-session";   // 👈 AJOUTE ÇA
 import connectDB from "./config/config.js";
 
-import clientRoutes from './routes/ClientRoutes.js';
+
 import machineRoutes from './routes/MachineRoutes.js';
 import notifRoutes from './routes/NotificationRoutes.js';
 import userRoutes from './routes/UserRoutes.js';
@@ -25,7 +25,7 @@ app.use(session({
 }));
 
 // ROUTES
-app.use("/client", clientRoutes);
+
 app.use("/user", userRoutes);
 app.use("/machine", machineRoutes);
 app.use("/notif", notifRoutes);
