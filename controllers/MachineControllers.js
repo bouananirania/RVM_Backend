@@ -99,5 +99,6 @@ const searchMachines = async (req, res) => {
 // =====================
 export default {
   getAllMachines,
-  searchMachines
+  searchMachines,
+  createMachine
 };
