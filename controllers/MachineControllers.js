@@ -120,11 +120,30 @@ const getDashboardStats = async (req, res) => {
 };
 
 // =====================
+// DELETE MACHINE
+// =====================
+const deleteMachine = async (req, res) => {
+  try {
+    const { id } = req.params; // This will now receive machine_id from the URL
+    const deletedMachine = await Machine.findOneAndDelete({ machine_id: id });
+    
+    if (!deletedMachine) {
+      return res.status(404).json({ message: "Machine non trouvée" });
+    }
+    
+    res.json({ message: "Machine supprimée avec succès" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // EXPORT DEFAULT
 // =====================
 export default {
   getAllMachines,
   searchMachines,
   createMachine,
-  getDashboardStats
+  getDashboardStats,
+  deleteMachine
 };

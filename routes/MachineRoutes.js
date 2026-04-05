@@ -14,4 +14,7 @@ router.get('/search', machineController.searchMachines);
 // Create machine (admin only)
 router.post('/create', machineController.createMachine);
 
+// Delete machine
+router.delete('/:id', machineController.deleteMachine);
+
 export default router;
