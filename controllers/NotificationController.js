@@ -7,7 +7,7 @@ import User from '../models/User.js';
 // =====================
 const getAllNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find()
+    const notifications = await Notification.find({ status: 'traitée' })
       .populate("machine", "name latitude longitude city status")
       .sort({ created_at: -1 });
 
@@ -55,7 +55,7 @@ const getNotificationsByMachine = async (req, res) => {
       machineObjectId = machineInfo._id;
     }
 
-    const notifications = await Notification.find({ machine: machineObjectId })
+    const notifications = await Notification.find({ machine: machineObjectId, status: 'traitée' })
       .populate("machine", "name latitude longitude city status")
       .sort({ created_at: -1 });
 
