@@ -119,6 +119,32 @@ const searchUsersByRole = async (req, res) => {
 };
 
 // =====================
+// CHANGE PASSWORD
+// =====================
+const changePassword = async (req, res) => {
+  try {
+    const { userId, oldPassword, newPassword } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    // Vérifier l'ancien mot de passe
+    const valid = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!valid) return res.status(400).json({ message: "Ancien mot de passe incorrect" });
+
+    // Hasher et sauvegarder le nouveau
+    user.password_hash = await bcrypt.hash(newPassword, 10);
+    user.updated_at = new Date();
+    await user.save();
+
+    res.json({ message: "Mot de passe modifié avec succès" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // EXPORT DEFAULT
 // =====================
 export default {
@@ -126,5 +152,6 @@ export default {
   login,
   logout,
   getUsersByRole,
-  searchUsersByRole
+  searchUsersByRole,
+  changePassword
 };

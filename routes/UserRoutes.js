@@ -22,4 +22,7 @@ router.get('/role/:role', userController.getUsersByRole);
 // Search users by role with filters
 router.get('/role/:role/search', userController.searchUsersByRole);
 
+// Change password
+router.put('/change-password', userController.changePassword);
+
 export default router;

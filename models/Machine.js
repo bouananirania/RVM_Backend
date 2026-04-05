@@ -10,7 +10,7 @@ const machineSchema = new Schema({
   location_type: { type: String, enum: ['institut', 'restaurant', 'centre commercial', 'espace public', 'usine'], required: true },
   status: { type: String, enum: ['actif','inactif','en_panne'], default: 'actif' },
   last_online_at: { type: Date },
-  photo_url: { type: String },//photo pte alu
+  photo_url: { type: String },
   ai_accuracy: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
