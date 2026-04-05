@@ -138,6 +138,26 @@ const deleteMachine = async (req, res) => {
 };
 
 // =====================
+// GET MACHINE DETAILS
+// =====================
+const getMachineDetails = async (req, res) => {
+  try {
+    const { id } = req.params; // Expects machine_id from URL
+    const machine = await Machine.findOne({ machine_id: id })
+      .populate("recyclingBins")
+      .populate("recycledProducts");
+      
+    if (!machine) {
+      return res.status(404).json({ message: "Machine non trouvée" });
+    }
+    
+    res.json(machine);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // EXPORT DEFAULT
 // =====================
 export default {
@@ -145,5 +165,6 @@ export default {
   searchMachines,
   createMachine,
   getDashboardStats,
-  deleteMachine
+  deleteMachine,
+  getMachineDetails
 };
