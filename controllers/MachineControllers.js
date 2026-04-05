@@ -143,15 +143,19 @@ const deleteMachine = async (req, res) => {
 const getMachineDetails = async (req, res) => {
   try {
     const { id } = req.params; // Expects machine_id from URL
-    const machine = await Machine.findOne({ machine_id: id })
-      .populate("recyclingBins")
-      .populate("recycledProducts");
+    const machine = await Machine.findOne({ machine_id: id }).select('-_id -__v');
       
     if (!machine) {
       return res.status(404).json({ message: "Machine non trouvée" });
     }
+
+    // Convertir en objet simple et supprimer les champs virtuels non désirés
+    const machineData = machine.toObject();
+    delete machineData.id;
+    delete machineData.recyclingBins;
+    delete machineData.recycledProducts;
     
-    res.json(machine);
+    res.json(machineData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
