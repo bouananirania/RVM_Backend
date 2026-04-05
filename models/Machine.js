@@ -6,6 +6,8 @@ const machineSchema = new Schema({
   name: { type: String, required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
+  city: { type: String, required: true },
+  address: { type: String, required: true },
   type: { type: String, enum: ['petit', 'grand'], required: true },
   location_type: { type: String, enum: ['institut', 'restaurant', 'centre commercial', 'espace public', 'usine'], required: true },
   status: { type: String, enum: ['actif','inactif','en_panne'], default: 'actif' },

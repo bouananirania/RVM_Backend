@@ -1,5 +1,6 @@
 import RecycledProduct from '../models/RecycledProduct.js';
 import Machine from '../models/Machine.js';
+import RecyclingBin from '../models/RecyclingBin.js';
 
 // =====================
 // CREATE RECYCLED PRODUCT
@@ -13,6 +14,16 @@ const createProduct = async (req, res) => {
 
     const product = new RecycledProduct({ machine, type, weight_kg });
     await product.save();
+
+    // -------------------------------------------------------------
+    // Mise à jour automatique du bac (RecyclingBin) correspondant
+    // -------------------------------------------------------------
+    const bin = await RecyclingBin.findOne({ machine: machine, type: type });
+    if (bin) {
+      bin.current_fill_kg += parseFloat(weight_kg);
+      await bin.save();
+    }
+
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ error: err.message });
