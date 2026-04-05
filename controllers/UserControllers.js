@@ -123,9 +123,9 @@ const searchUsersByRole = async (req, res) => {
 // =====================
 const changePassword = async (req, res) => {
   try {
-    const { userId, oldPassword, newPassword } = req.body;
+    const { email, oldPassword, newPassword } = req.body; // <-- Récupère email
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({ email: email }); // <-- Cherche par email
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
 
     // Vérifier l'ancien mot de passe
