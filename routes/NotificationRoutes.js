@@ -12,6 +12,12 @@ router.get(
   notificationController.getAllNotifications
 );
 
+// Notifications fraîchement générées (statut "envoyée")
+router.get(
+  '/admin/envoyees',
+  notificationController.getUnreadNotifications
+);
+
 
 
 // =====================
@@ -24,10 +30,6 @@ router.put(
   notificationController.updateNotificationStatus
 );
 
-// Supprimer une notification
-router.delete(
-  '/:id',
-  notificationController.deleteNotification
-);
+
 
 export default router;
