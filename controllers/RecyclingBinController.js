@@ -6,12 +6,12 @@ import Machine from '../models/Machine.js';
 // =====================
 const createBin = async (req, res) => {
   try {
-    const { machine, type, capacity_kg, current_fill_kg, sensor_id } = req.body;
+    const { machine, type, capacity_kg, current_fill_kg } = req.body;
 
     const machineExists = await Machine.findById(machine);
     if (!machineExists) return res.status(404).json({ message: "Machine non trouvée" });
 
-    const bin = new RecyclingBin({ machine, type, capacity_kg, current_fill_kg, sensor_id });
+    const bin = new RecyclingBin({ machine, type, capacity_kg, current_fill_kg });
     await bin.save();
     res.status(201).json(bin);
   } catch (err) {
@@ -51,7 +51,7 @@ const updateBin = async (req, res) => {
   try {
     const bin = await RecyclingBin.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updated_at: Date.now() },
+      req.body,
       { new: true, runValidators: true }
     );
     if (!bin) return res.status(404).json({ message: "Bac non trouvé" });

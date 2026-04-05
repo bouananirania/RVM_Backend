@@ -6,13 +6,14 @@ const machineSchema = new Schema({
   name: { type: String, required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
-  city: { type: String },
+  city: { type: String }, //place
   status: { type: String, enum: ['actif','inactif','en_panne'], default: 'actif' },
   last_online_at: { type: Date },
-  photo_url: { type: String },
+  photo_url: { type: String },//photo pte alu
   ai_accuracy: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
+  //machine type
 });
 
 // Virtual pour récupérer tous les bacs de la machine

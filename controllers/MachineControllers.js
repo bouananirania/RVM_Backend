@@ -1,4 +1,5 @@
 import Machine from '../models/Machine.js';
+import RecycledProduct from '../models/RecycledProduct.js';
 
 // =====================
 //create machine (admin only)
@@ -49,10 +50,7 @@ const searchMachines = async (req, res) => {
     // 1) Construire les filtres simples (status + location)
     // -----------------------------
     let filters = {};
-    //FILTRE BY NAME
-    if (req.query.name) {
-      filters.name = { $regex: req.query.name, $options: "i" };
-    }
+
 
     // FILTER BY STATUS
     if (status) {
@@ -71,7 +69,7 @@ const searchMachines = async (req, res) => {
     }
 
     // -----------------------------
-    // 2) Requête Mongo (sans filtrer type pour l'instant)
+    // 2) Requête Mongo (sans filtrer type pour l'instant)//upadtz later
     // -----------------------------
     let machines = await Machine.find(filters).populate({
       path: "recyclingBins",
@@ -94,10 +92,42 @@ const searchMachines = async (req, res) => {
 };
 
 // =====================
+// DASHBOARD STATS
+// =====================
+const getDashboardStats = async (req, res) => {
+  try {
+    // Total machines
+    const totalMachines = await Machine.countDocuments();
+
+    // Tous les produits recyclés
+    const products = await RecycledProduct.find();
+
+    // Total Aluminium collecté (kg)
+    const totalAlu = products
+      .filter(p => p.type === 'ALU')
+      .reduce((sum, p) => sum + p.weight_kg, 0);
+
+    // Total Plastique collecté (kg)
+    const totalPlastique = products
+      .filter(p => p.type === 'PET')
+      .reduce((sum, p) => sum + p.weight_kg, 0);
+
+    res.json({
+      aluminium: { value: totalAlu,      unit: 'kg'       },
+      plastique: { value: totalPlastique, unit: 'kg'      },
+      machines:  { value: totalMachines, unit: 'Machines' }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // EXPORT DEFAULT
 // =====================
 export default {
   getAllMachines,
   searchMachines,
-  createMachine
+  createMachine,
+  getDashboardStats
 };

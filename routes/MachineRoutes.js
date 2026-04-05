@@ -3,6 +3,9 @@ const router = express.Router();
 
 import machineController from '../controllers/MachineControllers.js';
 
+// Dashboard stats (aluminium kg, plastique DA, nb machines)
+router.get('/stats', machineController.getDashboardStats);
+
 // Get all machines
 router.get('/', machineController.getAllMachines);
 
