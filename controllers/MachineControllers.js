@@ -146,7 +146,9 @@ const deleteMachine = async (req, res) => {
 const getMachineDetails = async (req, res) => {
   try {
     const { id } = req.params; // Expects machine_id from URL
-    const machine = await Machine.findOne({ machine_id: id }).select('-_id -__v');
+    const machine = await Machine.findOne({ machine_id: id })
+      .populate("recyclingBins")
+      .select('-__v');
       
     if (!machine) {
       return res.status(404).json({ message: "Machine non trouvée" });
@@ -155,7 +157,24 @@ const getMachineDetails = async (req, res) => {
     // Convertir en objet simple et supprimer les champs virtuels non désirés
     const machineData = machine.toObject();
     delete machineData.id;
-    delete machineData.recyclingBins;
+
+    // Ajout du pourcentage de remplissage pour chaque bac
+    if (machineData.recyclingBins) {
+      machineData.recyclingBins = machineData.recyclingBins.map(bin => {
+        let percentage = 0;
+        if (bin.capacity_kg > 0) {
+          percentage = Math.round((bin.current_fill_kg / bin.capacity_kg) * 100);
+        }
+        // On s'assure que ça ne dépasse pas 100% visuellement
+        percentage = Math.min(percentage, 100);
+        
+        return {
+          ...bin,
+          fill_percentage: `${percentage}%`
+        };
+      });
+    }
+
     delete machineData.recycledProducts;
     
     res.json(machineData);
