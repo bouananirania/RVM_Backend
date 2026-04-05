@@ -18,6 +18,12 @@ router.get(
   notificationController.getUnreadNotifications
 );
 
+// Historique des notifications d'une machine spécifique
+router.get(
+  '/machine/:machineId',
+  notificationController.getNotificationsByMachine
+);
+
 
 
 // =====================

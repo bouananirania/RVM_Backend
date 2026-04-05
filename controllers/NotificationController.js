@@ -38,6 +38,36 @@ const getUnreadNotifications = async (req, res) => {
 };
 
 // =====================
+// Obtenir l'historique des notifications pour une machine spécifique
+// =====================
+const getNotificationsByMachine = async (req, res) => {
+  try {
+    const { machineId } = req.params;
+
+    // Si on nous donne l'ID public personnalisé (ex: "M001") au lieu du _id MongoDB,
+    // on va d'abord chercher le _id interne de la machine.
+    let machineObjectId = machineId;
+    if (machineId.length !== 24) {
+      const machineInfo = await Machine.findOne({ machine_id: machineId });
+      if (!machineInfo) {
+        return res.status(404).json({ message: "Machine non trouvée" });
+      }
+      machineObjectId = machineInfo._id;
+    }
+
+    const notifications = await Notification.find({ machine: machineObjectId })
+      .populate("machine", "name latitude longitude city status")
+      .sort({ created_at: -1 });
+
+    res.json(notifications);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// =====================
 // UPDATE NOTIFICATION STATUS
 // =====================
 const updateNotificationStatus = async (req, res) => {
@@ -45,7 +75,7 @@ const updateNotificationStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['envoyée', 'lue', 'traitée'].includes(status)) {
+    if (!['envoyée', 'traitée'].includes(status)) {
       return res.status(400).json({ message: "Statut invalide" });
     }
 
@@ -71,5 +101,6 @@ const updateNotificationStatus = async (req, res) => {
 export default {
   getAllNotifications,
   getUnreadNotifications,
+  getNotificationsByMachine,
   updateNotificationStatus
 };
