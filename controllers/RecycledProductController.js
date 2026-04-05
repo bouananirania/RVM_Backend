@@ -1,6 +1,7 @@
 import RecycledProduct from '../models/RecycledProduct.js';
 import Machine from '../models/Machine.js';
 import RecyclingBin from '../models/RecyclingBin.js';
+import Notification from '../models/Notification.js';
 
 // =====================
 // CREATE RECYCLED PRODUCT
@@ -20,8 +21,21 @@ const createProduct = async (req, res) => {
     // -------------------------------------------------------------
     const bin = await RecyclingBin.findOne({ machine: machine, type: type });
     if (bin) {
+      const oldFill = bin.current_fill_kg;
       bin.current_fill_kg += parseFloat(weight_kg);
       await bin.save();
+
+      // Création de la notification si le bac devient plein
+      if (bin.current_fill_kg >= bin.capacity_kg && oldFill < bin.capacity_kg) {
+        const notification = new Notification({
+          machine: machineExists._id,
+          type: 'remplissage',
+          message: `Le bac de ${type} de la machine "${machineExists.name}" est rempli à sa capacité maximale (${bin.capacity_kg} kg).`,
+          recipient_role: 'admin',
+          priority_level: 'élevé'
+        });
+        await notification.save();
+      }
     }
 
     res.status(201).json(product);

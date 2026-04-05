@@ -8,7 +8,7 @@ const createUser = async (req, res) => {
   try {
     const { username, nomcomplet, adress, email, phone, city, password, role } = req.body;
 
-    if (!['admin','technicien','videur'].includes(role)) {
+    if (!['admin'].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
@@ -75,7 +75,7 @@ const getUsersByRole = async (req, res) => {
   try {
     const { role } = req.params;
 
-    if (!['admin','technicien','videur'].includes(role)) {
+    if (!['admin'].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
@@ -95,7 +95,7 @@ const searchUsersByRole = async (req, res) => {
     const { role } = req.params;
     const { username, phone, city, startDate, endDate } = req.query;
 
-    if (!['admin','technicien','videur'].includes(role)) {
+    if (!['admin'].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 

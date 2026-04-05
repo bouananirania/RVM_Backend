@@ -3,84 +3,11 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 
 // =====================
-// ADMIN - Historique notifications
+// ADMIN - Obtenir TOUTES les notifications
 // =====================
-const getNotificationsByUserCity = async (req, res) => {
+const getAllNotifications = async (req, res) => {
   try {
-    const userId = req.params.userId;
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-
-    const city = user.city;
-
-    const machines = await Machine.find({ city });
-    const machineIds = machines.map(m => m._id);
-
-    const notifications = await Notification.find({
-      machine: { $in: machineIds }
-    })
-      .populate("machine", "name latitude longitude city status")
-      .select("machine type message recipient_role status priority_level created_at updated_at")
-      .sort({ created_at: -1 });
-
-    res.json(notifications);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erreur serveur" });
-  }
-};
-
-const getRecentNotificationsByUserCity = async (req, res) => {
-  try {
-    const userId = req.params.userId;
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-
-    const city = user.city;
-    const machines = await Machine.find({ city });
-    const machineIds = machines.map(m => m._id);
-
-    const now = new Date();
-    const last30s = new Date(now.getTime() - 30 * 1000);
-
-    const recentNotifications = await Notification.find({
-      machine: { $in: machineIds },
-      created_at: { $gte: last30s }
-    })
-      .populate("machine", "name latitude longitude city status")
-      .select("machine type message recipient_role status priority_level created_at updated_at")
-      .sort({ created_at: -1 });
-
-    res.json(recentNotifications);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erreur serveur" });
-  }
-};
-
-// =====================
-// TECHNICIEN - Historique notifications
-// =====================
-const getNotificationsForTechnicien = async (req, res) => {
-  try {
-    const technicienId = req.params.userId;
-
-    const user = await User.findById(technicienId);
-    if (!user) return res.status(404).json({ message: "Technicien non trouvé" });
-    if (user.role !== "technicien") return res.status(403).json({ message: "L'utilisateur n'est pas un technicien" });
-
-    const city = user.city;
-    const machines = await Machine.find({ city });
-    const machineIds = machines.map(m => m._id);
-
-    const notifications = await Notification.find({
-      machine: { $in: machineIds },
-      recipient_role: "technicien"
-    })
+    const notifications = await Notification.find()
       .populate("machine", "name latitude longitude city status")
       .sort({ created_at: -1 });
 
@@ -92,31 +19,28 @@ const getNotificationsForTechnicien = async (req, res) => {
   }
 };
 
-const getLatestNotificationsForTechnicien = async (req, res) => {
+
+// =====================
+// UPDATE NOTIFICATION STATUS
+// =====================
+const updateNotificationStatus = async (req, res) => {
   try {
-    const technicienId = req.params.userId;
+    const { id } = req.params;
+    const { status } = req.body;
 
-    const user = await User.findById(technicienId);
-    if (!user) return res.status(404).json({ message: "Technicien non trouvé" });
-    if (user.role !== "technicien") return res.status(403).json({ message: "L'utilisateur n'est pas un technicien" });
+    if (!['envoyée', 'lue', 'traitée'].includes(status)) {
+      return res.status(400).json({ message: "Statut invalide" });
+    }
 
-    const city = user.city;
-    const machines = await Machine.find({ city });
-    const machineIds = machines.map(m => m._id);
+    const notification = await Notification.findByIdAndUpdate(
+      id,
+      { status, updated_at: Date.now() },
+      { new: true }
+    );
 
-    const now = new Date();
-    const last30s = new Date(now.getTime() - 30 * 1000);
+    if (!notification) return res.status(404).json({ message: "Notification non trouvée" });
 
-    const recentNotifications = await Notification.find({
-      machine: { $in: machineIds },
-      recipient_role: "technicien",
-      created_at: { $gte: last30s }
-    })
-      .populate("machine", "name latitude longitude city status")
-      .sort({ created_at: -1 });
-
-    res.json(recentNotifications);
-
+    res.json(notification);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
@@ -124,60 +48,16 @@ const getLatestNotificationsForTechnicien = async (req, res) => {
 };
 
 // =====================
-// VIDEUR - Historique notifications
+// DELETE NOTIFICATION
 // =====================
-const getNotificationsForVideur = async (req, res) => {
+const deleteNotification = async (req, res) => {
   try {
-    const videurId = req.params.userId;
+    const { id } = req.params;
+    const notification = await Notification.findByIdAndDelete(id);
 
-    const user = await User.findById(videurId);
-    if (!user) return res.status(404).json({ message: "Videur non trouvé" });
-    if (user.role !== "videur") return res.status(403).json({ message: "L'utilisateur n'est pas un videur" });
+    if (!notification) return res.status(404).json({ message: "Notification non trouvée" });
 
-    const city = user.city;
-    const machines = await Machine.find({ city });
-    const machineIds = machines.map(m => m._id);
-
-    const notifications = await Notification.find({
-      machine: { $in: machineIds },
-      recipient_role: "videur"
-    })
-      .populate("machine", "name latitude longitude city status")
-      .sort({ created_at: -1 });
-
-    res.json(notifications);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erreur serveur" });
-  }
-};
-
-const getLatestNotificationsForVideur = async (req, res) => {
-  try {
-    const videurId = req.params.userId;
-
-    const user = await User.findById(videurId);
-    if (!user) return res.status(404).json({ message: "Videur non trouvé" });
-    if (user.role !== "videur") return res.status(403).json({ message: "L'utilisateur n'est pas un videur" });
-
-    const city = user.city;
-    const machines = await Machine.find({ city });
-    const machineIds = machines.map(m => m._id);
-
-    const now = new Date();
-    const last30s = new Date(now.getTime() - 30 * 1000);
-
-    const recentNotifications = await Notification.find({
-      machine: { $in: machineIds },
-      recipient_role: "videur",
-      created_at: { $gte: last30s }
-    })
-      .populate("machine", "name latitude longitude city status")
-      .sort({ created_at: -1 });
-
-    res.json(recentNotifications);
-
+    res.json({ message: "Notification supprimée avec succès" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
@@ -188,10 +68,7 @@ const getLatestNotificationsForVideur = async (req, res) => {
 // EXPORT DEFAULT
 // =====================
 export default {
-  getNotificationsByUserCity,
-  getRecentNotificationsByUserCity,
-  getNotificationsForTechnicien,
-  getLatestNotificationsForTechnicien,
-  getNotificationsForVideur,
-  getLatestNotificationsForVideur
+  getAllNotifications,
+  updateNotificationStatus,
+  deleteNotification
 };

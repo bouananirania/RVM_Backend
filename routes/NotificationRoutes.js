@@ -6,45 +6,28 @@ import notificationController from '../controllers/NotificationController.js';
 
 // ADMIN
 
-// Historique des notifications (par ville du user)
+// Historique global des notifications (pour tous les admins)
 router.get(
-  '/admin/:userId',
-  notificationController.getNotificationsByUserCity
+  '/admin',
+  notificationController.getAllNotifications
 );
 
-// Notifications récentes (ex: 30s)
-router.get(
-  '/admin/:userId/recent',
-  notificationController.getRecentNotificationsByUserCity
+
+
+// =====================
+// GESTION DES NOTIFICATIONS
+// =====================
+
+// Mettre à jour le statut d'une notification
+router.put(
+  '/status/:id',
+  notificationController.updateNotificationStatus
 );
 
-// TECHNICIEN
-
-
-// Historique notifications technicien
-router.get(
-  '/technicien/:userId',
-  notificationController.getNotificationsForTechnicien
-);
-
-// Notifications récentes technicien
-router.get(
-  '/technicien/:userId/recent',
-  notificationController.getLatestNotificationsForTechnicien
-);
-
-// VIDEUR
-
-// Historique notifications videur
-router.get(
-  '/videur/:userId',
-  notificationController.getNotificationsForVideur
-);
-
-// Notifications récentes videur
-router.get(
-  '/videur/:userId/recent',
-  notificationController.getLatestNotificationsForVideur
+// Supprimer une notification
+router.delete(
+  '/:id',
+  notificationController.deleteNotification
 );
 
 export default router;

@@ -1,5 +1,6 @@
 import Machine from '../models/Machine.js';
 import RecycledProduct from '../models/RecycledProduct.js';
+import Notification from '../models/Notification.js';
 
 // =====================
 //create machine (admin only)
@@ -176,20 +177,33 @@ const updateMachineStatus = async (req, res) => {
       return res.status(400).json({ message: "Statut invalide. Valeurs autorisées: actif, inactif, en_panne." });
     }
 
+    const oldMachine = await Machine.findOne({ machine_id: id });
+    if (!oldMachine) {
+      return res.status(404).json({ message: "Machine non trouvée" });
+    }
+
     const machine = await Machine.findOneAndUpdate(
       { machine_id: id },
       { status, updated_at: Date.now() },
       { new: true } // Pour renvoyer la machine mise à jour
     ).select('-_id -__v');
 
-    if (!machine) {
-      return res.status(404).json({ message: "Machine non trouvée" });
-    }
-
     const machineData = machine.toObject();
     delete machineData.id;
     delete machineData.recyclingBins;
     delete machineData.recycledProducts;
+
+    // Création de la notification si la machine tombe en panne
+    if (status === 'en_panne' && oldMachine.status !== 'en_panne') {
+      const notification = new Notification({
+        machine: oldMachine._id,
+        type: 'panne',
+        message: `La machine "${machine.name}" (ID: ${machine.machine_id}) vient de tomber en panne.`,
+        recipient_role: 'admin',
+        priority_level: 'élevé'
+      });
+      await notification.save();
+    }
 
     res.json({ message: "Statut mis à jour avec succès", machine: machineData });
   } catch (err) {
