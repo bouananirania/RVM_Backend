@@ -20,4 +20,7 @@ router.get('/:id', machineController.getMachineDetails);
 // Delete machine
 router.delete('/:id', machineController.deleteMachine);
 
+// Mettre à jour le statut
+router.put('/:id/status', machineController.updateMachineStatus);
+
 export default router;

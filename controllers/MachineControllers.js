@@ -162,6 +162,40 @@ const getMachineDetails = async (req, res) => {
 };
 
 // =====================
+// UPDATE MACHINE STATUS
+// =====================
+const updateMachineStatus = async (req, res) => {
+  try {
+    const { id } = req.params; // machine_id
+    const { status } = req.body;
+
+    // Vérification du statut
+    if (!['actif', 'inactif', 'en_panne'].includes(status)) {
+      return res.status(400).json({ message: "Statut invalide. Valeurs autorisées: actif, inactif, en_panne." });
+    }
+
+    const machine = await Machine.findOneAndUpdate(
+      { machine_id: id },
+      { status, updated_at: Date.now() },
+      { new: true } // Pour renvoyer la machine mise à jour
+    ).select('-_id -__v');
+
+    if (!machine) {
+      return res.status(404).json({ message: "Machine non trouvée" });
+    }
+
+    const machineData = machine.toObject();
+    delete machineData.id;
+    delete machineData.recyclingBins;
+    delete machineData.recycledProducts;
+
+    res.json({ message: "Statut mis à jour avec succès", machine: machineData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // EXPORT DEFAULT
 // =====================
 export default {
@@ -170,5 +204,6 @@ export default {
   createMachine,
   getDashboardStats,
   deleteMachine,
-  getMachineDetails
+  getMachineDetails,
+  updateMachineStatus
 };
