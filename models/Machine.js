@@ -6,7 +6,9 @@ const machineSchema = new Schema({
   name: { type: String, required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
-  city: { type: String }, //place
+  city: { type: String },
+  type: { type: String, enum: ['ALU', 'PET', 'ALU+PET'], required: true },
+  location_type: { type: String, enum: ['marché', 'restaurant', 'supermarché', 'école', 'université', 'hôpital', 'autre'], required: true },
   status: { type: String, enum: ['actif','inactif','en_panne'], default: 'actif' },
   last_online_at: { type: Date },
   photo_url: { type: String },//photo pte alu

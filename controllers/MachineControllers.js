@@ -6,13 +6,15 @@ import RecycledProduct from '../models/RecycledProduct.js';
 // =====================
 const createMachine = async (req, res) => {
   try {
-    const { machine_id, name, latitude, longitude, city, status, last_online_at, photo_url, ai_accuracy } = req.body;
+    const { machine_id, name, latitude, longitude, city, type, location_type, status, last_online_at, photo_url, ai_accuracy } = req.body;
     const machine = new Machine({
       machine_id,
       name,
       latitude,
       longitude,
       city,
+      type,
+      location_type,
       status,
       last_online_at,
       photo_url,
