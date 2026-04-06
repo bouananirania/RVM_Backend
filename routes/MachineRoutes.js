@@ -3,24 +3,31 @@ const router = express.Router();
 
 import machineController from '../controllers/MachineControllers.js';
 
-// Dashboard stats (aluminium kg, plastique DA, nb machines)
-router.get('/stats', machineController.getDashboardStats);
+
+// Create machine (admin only)
+router.post('/create', machineController.createMachine);
+
 
 // Get all machines
 router.get('/', machineController.getAllMachines);
 
-// Search machines (status, type, location, radius)
+
+// Search machines (status, location)
 router.get('/search', machineController.searchMachines);
-// Create machine (admin only)
-router.post('/create', machineController.createMachine);
+
+// Dashboard stats (aluminium kg, plastique kg, nb machines)
+router.get('/stats', machineController.getDashboardStats);
+
 
 // Get machine details by machine_id
 router.get('/:id', machineController.getMachineDetails);
 
-// Delete machine
-router.delete('/:id', machineController.deleteMachine);
 
 // Mettre à jour le statut
 router.put('/:id/status', machineController.updateMachineStatus);
+
+
+// Delete machine
+router.delete('/:id', machineController.deleteMachine);
 
 export default router;

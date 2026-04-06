@@ -4,7 +4,7 @@ import Notification from '../models/Notification.js';
 import RecyclingBin from '../models/RecyclingBin.js';
 
 // =====================
-//create machine (admin only)
+//create machine 
 // =====================
 const createMachine = async (req, res) => {
   try {
@@ -65,9 +65,6 @@ const searchMachines = async (req, res) => {
   try {
     const { status, type, lat, lng, radius = 0.05 } = req.query;
 
-    // -----------------------------
-    // 1) Construire les filtres simples (status + location)
-    // -----------------------------
     let filters = {};
 
 
@@ -87,21 +84,6 @@ const searchMachines = async (req, res) => {
       filters.longitude = { $gte: minLng, $lte: maxLng };
     }
 
-    // -----------------------------
-    // 2) Requête Mongo (sans filtrer type pour l'instant)//upadtz later
-    // -----------------------------
-    let machines = await Machine.find(filters).populate({
-      path: "recyclingBins",
-      match: type ? { type: type } : {},  // FILTER BY RECYCLING TYPE
-    });
-
-    // -----------------------------
-    // 3) Si un type est demandé → garder seulement les machines
-    //    qui ont au moins 1 bac de ce type
-    // -----------------------------
-    if (type) {
-      machines = machines.filter(m => m.recyclingBins.length > 0);
-    }
 
     res.json(machines);
 
@@ -132,28 +114,10 @@ const getDashboardStats = async (req, res) => {
       .reduce((sum, p) => sum + p.weight_kg, 0);
 
     res.json({
-      aluminium: { value: totalAlu,      unit: 'kg'       },
-      plastique: { value: totalPlastique, unit: 'kg'      },
-      machines:  { value: totalMachines, unit: 'Machines' }
+      aluminium: { value: totalAlu, unit: 'kg' },
+      plastique: { value: totalPlastique, unit: 'kg' },
+      machines: { value: totalMachines, unit: 'Machines' }
     });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// =====================
-// DELETE MACHINE
-// =====================
-const deleteMachine = async (req, res) => {
-  try {
-    const { id } = req.params; // This will now receive machine_id from the URL
-    const deletedMachine = await Machine.findOneAndDelete({ machine_id: id });
-    
-    if (!deletedMachine) {
-      return res.status(404).json({ message: "Machine non trouvée" });
-    }
-    
-    res.json({ message: "Machine supprimée avec succès" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -168,7 +132,7 @@ const getMachineDetails = async (req, res) => {
     const machine = await Machine.findOne({ machine_id: id })
       .populate("recyclingBins")
       .select('-__v');
-      
+
     if (!machine) {
       return res.status(404).json({ message: "Machine non trouvée" });
     }
@@ -186,7 +150,7 @@ const getMachineDetails = async (req, res) => {
         }
         // On s'assure que ça ne dépasse pas 100% visuellement
         percentage = Math.min(percentage, 100);
-        
+
         return {
           ...bin,
           fill_percentage: `${percentage}%`
@@ -195,12 +159,13 @@ const getMachineDetails = async (req, res) => {
     }
 
     delete machineData.recycledProducts;
-    
+
     res.json(machineData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // =====================
 // UPDATE MACHINE STATUS
@@ -236,14 +201,40 @@ const updateMachineStatus = async (req, res) => {
       const notification = new Notification({
         machine: oldMachine._id,
         type: 'panne',
-        message: `La machine "${machine.name}" (ID: ${machine.machine_id}) vient de tomber en panne.`,
-        recipient_role: 'admin',
-        priority_level: 'élevé'
+        message: `La machine "${machine.name}" (ID: ${machine.machine_id}) vient de tomber en panne.`
       });
       await notification.save();
     }
 
     res.json({ message: "Statut mis à jour avec succès", machine: machineData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// =====================
+// DELETE MACHINE
+// =====================
+const deleteMachine = async (req, res) => {
+  try {
+    const { id } = req.params; // This will now receive machine_id from the URL
+
+    // On cherche d'abord la machine pour récupérer son _id MongoDB
+    const machine = await Machine.findOne({ machine_id: id });
+    if (!machine) {
+      return res.status(404).json({ message: "Machine non trouvée" });
+    }
+
+    // Nettoyage en cascade : On efface toutes les données liées
+    await RecyclingBin.deleteMany({ machine: machine._id });
+    await RecycledProduct.deleteMany({ machine: machine._id });
+    await Notification.deleteMany({ machine: machine._id });
+
+    // On efface enfin la machine
+    await Machine.findByIdAndDelete(machine._id);
+
+    res.json({ message: "Machine et toutes ses données (bacs, logs, notifications) supprimées avec succès" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

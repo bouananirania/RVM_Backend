@@ -43,9 +43,7 @@ const createProduct = async (req, res) => {
         const notification = new Notification({
           machine: machineExists._id,
           type: 'remplissage',
-          message: `Le bac de ${type} de la machine "${machineExists.name}" est rempli à sa capacité maximale (${bin.capacity_kg} kg).`,
-          recipient_role: 'admin',
-          priority_level: 'élevé'
+          message: `Le bac de ${type} de la machine "${machineExists.name}" est rempli à sa capacité maximale (${bin.capacity_kg} kg).`
         });
         await notification.save();
       } else if (percentageFill >= 0.8 && oldPercentageFill < 0.8) {
@@ -53,9 +51,7 @@ const createProduct = async (req, res) => {
         const notification = new Notification({
           machine: machineExists._id,
           type: 'alerte_80',
-          message: `Alerte : Le bac de ${type} de la machine "${machineExists.name}" est rempli à plus de 80%.`,
-          recipient_role: 'admin',
-          priority_level: 'moyen'
+          message: `Alerte : Le bac de ${type} de la machine "${machineExists.name}" est rempli à plus de 80%.`
         });
         await notification.save();
       }
@@ -109,23 +105,11 @@ const getProductsByType = async (req, res) => {
   }
 };
 
-// =====================
-// DELETE PRODUCT
-// =====================
-const deleteProduct = async (req, res) => {
-  try {
-    const product = await RecycledProduct.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: "Produit non trouvé" });
-    res.json({ message: "Produit supprimé avec succès" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+
 
 export default {
   createProduct,
   getAllProducts,
   getProductsByMachine,
-  getProductsByType,
-  deleteProduct
+  getProductsByType
 };

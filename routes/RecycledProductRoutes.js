@@ -15,7 +15,6 @@ router.get('/machine/:machineId', productController.getProductsByMachine);
 // Get products by type (PET / ALU)
 router.get('/type/:type', productController.getProductsByType);
 
-// Delete a product
-router.delete('/:id', productController.deleteProduct);
+
 
 export default router;
