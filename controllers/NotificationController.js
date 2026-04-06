@@ -73,19 +73,39 @@ const getNotificationsByMachine = async (req, res) => {
 const updateNotificationStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, worker_name } = req.body;
 
     if (!['envoyée', 'traitée'].includes(status)) {
       return res.status(400).json({ message: "Statut invalide" });
     }
 
-    const notification = await Notification.findByIdAndUpdate(
-      id,
-      { status, updated_at: Date.now() },
-      { new: true }
-    );
-
+    const notification = await Notification.findById(id);
     if (!notification) return res.status(404).json({ message: "Notification non trouvée" });
+
+    // Vérification du nom du technicien ou videur lors de la clôture
+    if (status === 'traitée' && notification.status !== 'traitée') {
+      if (notification.type === 'panne' && !worker_name) {
+        return res.status(400).json({ message: "Le nom du technicien est requis pour traiter une panne." });
+      }
+      if ((notification.type === 'remplissage' || notification.type === 'alerte_80') && !worker_name) {
+        return res.status(400).json({ message: "Le nom du videur est requis pour traiter un remplissage." });
+      }
+    }
+
+    notification.status = status;
+    if (worker_name) {
+      notification.worker_name = worker_name;
+
+      // Ajouter le nom de la personne au message pour que ce soit visible dans l'historique
+      if (notification.type === 'panne') {
+        notification.message = `${notification.message} (Réparation effectuée par le technicien : ${worker_name})`;
+      } else {
+        notification.message = `${notification.message} (Bac vidé par : ${worker_name})`;
+      }
+    }
+    notification.updated_at = Date.now();
+
+    await notification.save();
 
     res.json(notification);
   } catch (error) {

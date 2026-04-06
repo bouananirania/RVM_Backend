@@ -13,26 +13,49 @@ const createProduct = async (req, res) => {
     const machineExists = await Machine.findById(machine);
     if (!machineExists) return res.status(404).json({ message: "Machine non trouvée" });
 
+    // -------------------------------------------------------------
+    // Vérification de la capacité du bac (RecyclingBin) correspondant
+    // -------------------------------------------------------------
+    const bin = await RecyclingBin.findOne({ machine: machine, type: type });
+    if (bin) {
+      if (bin.current_fill_kg + parseFloat(weight_kg) > bin.capacity_kg) {
+        return res.status(400).json({ message: "Produit refusé : la capacité maximale du bac sera dépassée." });
+      }
+    }
+
     const product = new RecycledProduct({ machine, type, weight_kg });
     await product.save();
 
     // -------------------------------------------------------------
-    // Mise à jour automatique du bac (RecyclingBin) correspondant
+    // Mise à jour automatique du bac
     // -------------------------------------------------------------
-    const bin = await RecyclingBin.findOne({ machine: machine, type: type });
     if (bin) {
       const oldFill = bin.current_fill_kg;
       bin.current_fill_kg += parseFloat(weight_kg);
       await bin.save();
 
+      // Calcul du pourcentage de remplissage
+      const percentageFill = bin.current_fill_kg / bin.capacity_kg;
+      const oldPercentageFill = oldFill / bin.capacity_kg;
+
       // Création de la notification si le bac devient plein
-      if (bin.current_fill_kg >= bin.capacity_kg && oldFill < bin.capacity_kg) {
+      if (percentageFill >= 1 && oldPercentageFill < 1) {
         const notification = new Notification({
           machine: machineExists._id,
           type: 'remplissage',
           message: `Le bac de ${type} de la machine "${machineExists.name}" est rempli à sa capacité maximale (${bin.capacity_kg} kg).`,
           recipient_role: 'admin',
           priority_level: 'élevé'
+        });
+        await notification.save();
+      } else if (percentageFill >= 0.8 && oldPercentageFill < 0.8) {
+        // Alerte si le bac atteint ou dépasse 80%
+        const notification = new Notification({
+          machine: machineExists._id,
+          type: 'alerte_80',
+          message: `Alerte : Le bac de ${type} de la machine "${machineExists.name}" est rempli à plus de 80%.`,
+          recipient_role: 'admin',
+          priority_level: 'moyen'
         });
         await notification.save();
       }

@@ -10,6 +10,8 @@ import userRoutes from './routes/UserRoutes.js';
 import binRoutes from './routes/RecyclingBinRoutes.js';
 import productRoutes from './routes/RecycledProductRoutes.js';
 
+import workerRoutes from './routes/WorkerRoutes.js';
+
 dotenv.config();
 connectDB();
 
@@ -33,6 +35,7 @@ app.use("/machine", machineRoutes);
 app.use("/notif", notifRoutes);
 app.use("/bin", binRoutes);
 app.use("/product", productRoutes);
+app.use("/worker", workerRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log("Server running on port " + process.env.PORT);

@@ -1,6 +1,7 @@
 import Machine from '../models/Machine.js';
 import RecycledProduct from '../models/RecycledProduct.js';
 import Notification from '../models/Notification.js';
+import RecyclingBin from '../models/RecyclingBin.js';
 
 // =====================
 //create machine (admin only)
@@ -19,7 +20,25 @@ const createMachine = async (req, res) => {
       location_type
     });
     await machine.save();
-    res.status(201).json(machine);
+
+    // Génération automatique des bacs après la création de la machine
+    const capacity = type === 'grand' ? 100 : 50;
+
+    const binPET = new RecyclingBin({
+      machine: machine._id,
+      type: 'PET',
+      capacity_kg: capacity
+    });
+
+    const binALU = new RecyclingBin({
+      machine: machine._id,
+      type: 'ALU',
+      capacity_kg: capacity
+    });
+
+    await Promise.all([binPET.save(), binALU.save()]);
+
+    res.status(201).json({ message: "Machine et bacs créés avec succès", machine });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
