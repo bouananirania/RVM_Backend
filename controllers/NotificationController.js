@@ -1,6 +1,7 @@
 import Machine from '../models/Machine.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import Worker from '../models/Worker.js';
 
 
 
@@ -44,6 +45,27 @@ const updateNotificationStatus = async (req, res) => {
       }
       if (notification.type === 'remplissage' && !worker_name) {
         return res.status(400).json({ message: "Le nom du videur est requis pour traiter un remplissage." });
+      }
+
+      if (worker_name) {
+        // Vérifier si le travailleur existe dans la base de données
+        const worker = await Worker.findOne({ nomcomplet: worker_name });
+        
+        if (!worker) {
+          return res.status(404).json({ message: `Le travailleur '${worker_name}' n'existe pas dans la base de données.` });
+        }
+
+        if (worker.status !== 'actif') {
+          return res.status(400).json({ message: `Le travailleur '${worker_name}' n'est pas actif.` });
+        }
+
+        // Vérification des rôles
+        if (notification.type === 'panne' && worker.role !== 'technicien') {
+          return res.status(400).json({ message: `Le travailleur '${worker_name}' n'a pas le rôle de technicien.` });
+        }
+        if ((notification.type === 'remplissage' || notification.type === 'alerte_80') && worker.role !== 'videur') {
+          return res.status(400).json({ message: `Le travailleur '${worker_name}' n'a pas le rôle de videur.` });
+        }
       }
     }
 
