@@ -4,8 +4,10 @@ import workerController from '../controllers/WorkerController.js';
 const router = express.Router();
 
 router.post('/add', workerController.createWorker);
+router.post('/assign', workerController.assignWorker);
 router.get('/stats/dashboard', workerController.getWorkerDashboardStats);
 router.get('/all', workerController.getAllWorkers);
+router.get('/history/:id', workerController.getWorkerHistory);
 router.get('/role/:role', workerController.getWorkersByRole);
 router.get('/status/:status', workerController.getWorkersByStatus);
 router.put('/update-status/:id', workerController.updateWorkerStatus);
