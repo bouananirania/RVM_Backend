@@ -13,7 +13,7 @@ const workerSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["actif", "inactif"],
+    enum: ["actif", "inactif", "en intervention"],
     default: "actif",
   },
   created_at: { type: Date, default: Date.now },

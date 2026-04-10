@@ -1,4 +1,54 @@
 import Worker from '../models/Worker.js';
+import Notification from '../models/Notification.js';
+
+// =====================
+// GET WORKER DASHBOARD STATS
+// =====================
+const getWorkerDashboardStats = async (req, res) => {
+  try {
+    // 1. Travailleurs globaux
+    const totalWorkers = await Worker.countDocuments();
+    const activeWorkers = await Worker.countDocuments({ status: 'actif' });
+
+    // 2. Techniciens
+    const totalTechniciens = await Worker.countDocuments({ role: 'technicien' });
+    const techniciensEnIntervention = await Worker.countDocuments({ role: 'technicien', status: 'en intervention' });
+
+    // 3. Videurs
+    const totalVideurs = await Worker.countDocuments({ role: 'videur' });
+    const videursDisponibles = await Worker.countDocuments({ role: 'videur', status: 'actif' });
+
+    // 4. Tâches en attente (Notifications 'envoyée')
+    // Les pannes et remplissages (100%) sont considérés comme urgents.
+    const totalTasks = await Notification.countDocuments({ status: 'envoyée' });
+    const urgentTasks = await Notification.countDocuments({ 
+      status: 'envoyée', 
+      type: { $in: ['panne', 'remplissage'] } 
+    });
+
+    res.json({
+      travailleurs: {
+        total: totalWorkers,
+        actifs: activeWorkers
+      },
+      techniciens: {
+        total: totalTechniciens,
+        en_intervention: techniciensEnIntervention
+      },
+      videurs: {
+        total: totalVideurs,
+        disponibles: videursDisponibles
+      },
+      taches: {
+        total: totalTasks,
+        urgentes: urgentTasks
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // =====================
 // ADD WORKER
@@ -55,6 +105,22 @@ const getWorkersByRole = async (req, res) => {
 };
 
 // =====================
+// GET WORKERS BY STATUS
+// =====================
+const getWorkersByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+    if (!['actif', 'inactif', 'en intervention'].includes(status)) {
+      return res.status(400).json({ message: "Statut invalide" });
+    }
+    const workers = await Worker.find({ status }).sort({ created_at: -1 });
+    res.json(workers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // UPDATE WORKER STATUS (ACTIF/INACTIF)
 // =====================
 const updateWorkerStatus = async (req, res) => {
@@ -62,7 +128,7 @@ const updateWorkerStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['actif', 'inactif'].includes(status)) {
+    if (!['actif', 'inactif', 'en intervention'].includes(status)) {
       return res.status(400).json({ message: "Statut invalide" });
     }
 
@@ -98,6 +164,8 @@ export default {
   createWorker,
   getAllWorkers,
   getWorkersByRole,
+  getWorkersByStatus,
+  getWorkerDashboardStats,
   updateWorkerStatus,
   deleteWorker
 };
