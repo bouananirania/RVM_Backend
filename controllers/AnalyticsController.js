@@ -5,39 +5,60 @@ import Notification from '../models/Notification.js';
 const getAnalyticsDashboard = async (req, res) => {
   try {
     const now = new Date();
-    
-    // Dates for last 7 days and previous 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 7);
-    
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(now.getDate() - 14);
 
-    // 1. Fetch core data
-    const totalMachines = await Machine.countDocuments();
-    
-    // A collecter = Notifications de remplissage "envoyée"
-    const aCollecter = await Notification.countDocuments({
-      type: 'remplissage',
-      status: 'envoyée'
-    });
+    // ─── Query params ────────────────────────────────────────────────────────
+    // ?city=Alger   → filter everything to machines in that city
+    // ?period=30D   → use 30 days instead of the default 7D
+    //   Accepted values: 7D (default), 14D, 30D, 90D
+    const cityFilter = req.query.city ? req.query.city.trim() : null;
 
-    // Tous les produits
-    const products = await RecycledProduct.find().populate('machine', 'city name machine_id status');
-    
-    // Variables for aggregations
+    const VALID_PERIODS = { '7D': 7, '14D': 14, '30D': 30, '90D': 90 };
+    const periodKey = req.query.period && VALID_PERIODS[req.query.period.toUpperCase()]
+      ? req.query.period.toUpperCase()
+      : '7D';
+    const periodDays = VALID_PERIODS[periodKey];
+
+    // Current period window  (e.g. last 30 days)
+    const periodStart = new Date();
+    periodStart.setDate(now.getDate() - periodDays);
+
+    // Previous period window of same length (for growth comparison)
+    const prevPeriodStart = new Date();
+    prevPeriodStart.setDate(now.getDate() - periodDays * 2);
+
+    // ─── Machine filter ──────────────────────────────────────────────────────
+    const machineQuery = cityFilter ? { city: { $regex: new RegExp(`^${cityFilter}$`, 'i') } } : {};
+
+    // ─── 1. Cards: total machines & à collecter ──────────────────────────────
+    const totalMachines = await Machine.countDocuments(machineQuery);
+
+    // For notification count we need machine IDs when city filter is active
+    let notifQuery = { type: 'remplissage', status: 'envoyée' };
+    if (cityFilter) {
+      const filteredMachineIds = await Machine.find(machineQuery).distinct('_id');
+      notifQuery.machine = { $in: filteredMachineIds };
+    }
+    const aCollecter = await Notification.countDocuments(notifQuery);
+
+    // ─── 2. Recycled products ────────────────────────────────────────────────
+    const productQuery = cityFilter
+      ? { machine: { $in: await Machine.find(machineQuery).distinct('_id') } }
+      : {};
+
+    const products = await RecycledProduct.find(productQuery)
+      .populate('machine', 'city name machine_id status');
+
+    // ─── 3. Aggregation variables ────────────────────────────────────────────
     let petTotal = 0;
     let aluTotal = 0;
-    
-    let petLast7 = 0;
-    let petPrev7 = 0;
-    
-    let aluLast7 = 0;
-    let aluPrev7 = 0;
+    let petCurrent = 0;
+    let petPrev = 0;
+    let aluCurrent = 0;
+    let aluPrev = 0;
 
-    // Tendance 7 jours: initialiser un tableau des 7 derniers jours (ex: "DD/MM")
+    // Build trend map (one entry per day across the period)
     const tendanceMap = {};
-    for (let i = 6; i >= 0; i--) {
+    for (let i = periodDays - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
       const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -47,79 +68,86 @@ const getAnalyticsDashboard = async (req, res) => {
     const volumeParWilayaMap = {};
 
     products.forEach(p => {
-      // Pour les anciens produits sans created_at, on utilise l'ObjectId
       const pDate = p.created_at || (p._id && p._id.getTimestamp ? p._id.getTimestamp() : new Date(0));
       const weight = p.weight_kg || 0;
 
-      // Totaux globaux
+      // All-time totals (for distribution)
       if (p.type === 'PET') petTotal += weight;
       if (p.type === 'ALU') aluTotal += weight;
 
-      // Croissance (7 jours vs 14 jours)
-      if (pDate >= sevenDaysAgo) {
-        if (p.type === 'PET') petLast7 += weight;
-        if (p.type === 'ALU') aluLast7 += weight;
+      // Current period (for growth & trend)
+      if (pDate >= periodStart) {
+        if (p.type === 'PET') petCurrent += weight;
+        if (p.type === 'ALU') aluCurrent += weight;
 
-        // Populate Tendance for last 7 days
+        // Populate daily trend
         const dateStr = `${String(pDate.getDate()).padStart(2, '0')}/${String(pDate.getMonth() + 1).padStart(2, '0')}`;
         if (tendanceMap[dateStr] !== undefined) {
           tendanceMap[dateStr] += weight;
         }
-
-      } else if (pDate >= fourteenDaysAgo && pDate < sevenDaysAgo) {
-        if (p.type === 'PET') petPrev7 += weight;
-        if (p.type === 'ALU') aluPrev7 += weight;
+      }
+      // Previous period (for growth comparison)
+      else if (pDate >= prevPeriodStart && pDate < periodStart) {
+        if (p.type === 'PET') petPrev += weight;
+        if (p.type === 'ALU') aluPrev += weight;
       }
 
-      // Volume par wilaya
+      // Volume per city (only when no city filter, otherwise it would be one-entry)
       if (p.machine && p.machine.city) {
         const city = p.machine.city;
         volumeParWilayaMap[city] = (volumeParWilayaMap[city] || 0) + weight;
       }
     });
 
-    // Helper function for growth
-    const calculateGrowth = (last7, prev7) => {
-      if (prev7 === 0) {
-        if (last7 === 0) return "Stable";
-        return "+100% croissance"; // Arbitrary positive when from 0 to something
+    // ─── 4. Helpers ──────────────────────────────────────────────────────────
+    const calculateGrowth = (current, prev) => {
+      if (prev === 0) {
+        if (current === 0) return 'Stable';
+        return '+100% croissance';
       }
-      const growth = ((last7 - prev7) / prev7) * 100;
+      const growth = ((current - prev) / prev) * 100;
       if (growth > 0) return `+${Math.round(growth)}% croissance`;
       if (growth < 0) return `${Math.round(growth)}% baisse`;
-      return "Stable";
+      return 'Stable';
     };
 
-    // Format Tendance
-    const tendance_7_jours = Object.keys(tendanceMap).map(date => ({
+    // ─── 5. Format outputs ───────────────────────────────────────────────────
+    const tendance = Object.keys(tendanceMap).map(date => ({
       date,
       weight: Math.round(tendanceMap[date] * 100) / 100
     }));
 
-    // Format Distribution
     const totalWeight = petTotal + aluTotal;
     const recyc_distribution = {
       PET: totalWeight ? Math.round((petTotal / totalWeight) * 100) : 0,
       ALU: totalWeight ? Math.round((aluTotal / totalWeight) * 100) : 0
     };
 
-    // Format Volume par Wilaya
-    const volume_par_wilaya = Object.keys(volumeParWilayaMap).map(wilaya => ({
-      wilaya,
-      volume: Math.round(volumeParWilayaMap[wilaya] * 100) / 100
-    })).sort((a, b) => b.volume - a.volume);
+    const volume_par_wilaya = Object.keys(volumeParWilayaMap)
+      .map(wilaya => ({
+        wilaya,
+        volume: Math.round(volumeParWilayaMap[wilaya] * 100) / 100
+      }))
+      .sort((a, b) => b.volume - a.volume);
 
-    // Alertes Critiques (5 dernières non traitées)
-    const alertes_critiques = await Notification.find({
+    // Alertes Critiques (5 dernières non traitées, filtrées par ville si besoin)
+    const alertesQuery = {
       status: 'envoyée',
       type: { $in: ['panne', 'remplissage', 'alerte_80'] }
-    })
+    };
+    if (cityFilter) {
+      alertesQuery.machine = notifQuery.machine;
+    }
+    const alertes_critiques = await Notification.find(alertesQuery)
       .sort({ created_at: -1 })
       .limit(5)
       .populate('machine', 'name machine_id city type');
 
-    // Inventaire Détaillé
-    const machinesWithBins = await Machine.find().populate('recyclingBins').select('-__v');
+    // Inventaire Détaillé (filtré par ville si besoin)
+    const machinesWithBins = await Machine.find(machineQuery)
+      .populate('recyclingBins')
+      .select('-__v');
+
     const inventaire = machinesWithBins.map(m => {
       let totalCurrentFill = 0;
       let totalCapacity = 0;
@@ -145,20 +173,25 @@ const getAnalyticsDashboard = async (req, res) => {
       };
     });
 
+    // ─── 6. Response ─────────────────────────────────────────────────────────
     res.json({
+      filters_applied: {
+        city: cityFilter || 'all',
+        period: periodKey
+      },
       cards: {
         total_machines: totalMachines,
         a_collecter: aCollecter,
         plastique: {
           weight: Math.round(petTotal * 100) / 100,
-          growth: calculateGrowth(petLast7, petPrev7)
+          growth: calculateGrowth(petCurrent, petPrev)
         },
         aluminium: {
           weight: Math.round(aluTotal * 100) / 100,
-          growth: calculateGrowth(aluLast7, aluPrev7)
+          growth: calculateGrowth(aluCurrent, aluPrev)
         }
       },
-      tendance_7_jours,
+      tendance_7_jours: tendance,   // key name kept for backward compat
       recyc_distribution,
       volume_par_wilaya,
       alertes_critiques,
