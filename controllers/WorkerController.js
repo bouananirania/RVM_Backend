@@ -1,5 +1,6 @@
 import Worker from '../models/Worker.js';
 import Notification from '../models/Notification.js';
+import Machine from '../models/Machine.js';
 
 // =====================
 // GET WORKER DASHBOARD STATS
@@ -162,6 +163,57 @@ const deleteWorker = async (req, res) => {
 
 
 // =====================
+// GET WORKER PROFILE (with calculated stats)
+// =====================
+const getWorkerProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const worker = await Worker.findById(id);
+    if (!worker) return res.status(404).json({ message: "Worker non trouvé" });
+
+    // Mapping statut interne → libellé affiché
+    const statusMap = {
+      'actif': 'Disponible',
+      'inactif': 'Indisponible',
+      'en intervention': 'En intervention'
+    };
+
+    // Tâches complétées = notifications traitées par ce worker
+    const completedNotifications = await Notification.find({
+      status: 'traitée',
+      worker_name: worker.nomcomplet
+    }).populate('machine', 'machine_id');
+
+    const taches_completees = completedNotifications.length;
+
+    // Machines distinctes sur lesquelles il a travaillé
+    const machineIds = new Set(
+      completedNotifications
+        .filter(n => n.machine)
+        .map(n => n.machine._id.toString())
+    );
+    const machines_count = machineIds.size;
+
+    res.json({
+      _id: worker._id,
+      nomcomplet: worker.nomcomplet,
+      phone: worker.phone,
+      city: worker.city,
+      role: worker.role,
+      status: worker.status,
+      status_label: statusMap[worker.status] || worker.status,
+      machines: machines_count,
+      taches_completees,
+      created_at: worker.created_at
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // GET WORKER ACTIVITY HISTORY
 // =====================
 const getWorkerHistory = async (req, res) => {
@@ -208,5 +260,6 @@ export default {
   getWorkerDashboardStats,
   updateWorkerStatus,
   deleteWorker,
-  getWorkerHistory
+  getWorkerHistory,
+  getWorkerProfile
 };

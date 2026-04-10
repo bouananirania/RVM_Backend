@@ -6,6 +6,7 @@ const router = express.Router();
 router.post('/add', workerController.createWorker);
 router.get('/stats/dashboard', workerController.getWorkerDashboardStats);
 router.get('/all', workerController.getAllWorkers);
+router.get('/profile/:id', workerController.getWorkerProfile);
 router.get('/history/:id', workerController.getWorkerHistory);
 router.get('/role/:role', workerController.getWorkersByRole);
 router.get('/status/:status', workerController.getWorkersByStatus);
