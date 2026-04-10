@@ -2,6 +2,7 @@ import Machine from '../models/Machine.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Worker from '../models/Worker.js';
+import { sendAssignmentEmail } from '../config/mailer.js';
 
 
 
@@ -83,6 +84,28 @@ const updateNotificationStatus = async (req, res) => {
     notification.updated_at = Date.now();
 
     await notification.save();
+
+    // ── Envoi email au worker assigné ──────────────────────────────────────
+    if (status === 'traitée' && worker_name) {
+      try {
+        const assignedWorker = await Worker.findOne({ nomcomplet: worker_name });
+        if (assignedWorker && assignedWorker.email) {
+          // Récupérer les infos machine pour l'email
+          const machine = await Machine.findById(notification.machine);
+          await sendAssignmentEmail(assignedWorker.email, assignedWorker.nomcomplet, {
+            type: notification.type,
+            message: notification.message,
+            machineId: machine?.machine_id || null,
+            machineName: machine?.name || null,
+            machineCity: machine?.city || null,
+          });
+        }
+      } catch (mailErr) {
+        // L'email ne bloque pas la réponse API
+        console.error('Erreur envoi email:', mailErr.message);
+      }
+    }
+    // ─────────────────────────────────────────────────────────
 
     res.json(notification);
   } catch (error) {

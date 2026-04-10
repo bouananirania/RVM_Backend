@@ -56,7 +56,7 @@ const getWorkerDashboardStats = async (req, res) => {
 // =====================
 const createWorker = async (req, res) => {
   try {
-    const { nomcomplet, phone, city, role } = req.body;
+    const { nomcomplet, phone, city, role, email } = req.body;
 
     if (!['technicien', 'videur'].includes(role)) {
       return res.status(400).json({ message: "Role invalide" });
@@ -66,7 +66,8 @@ const createWorker = async (req, res) => {
       nomcomplet,
       phone,
       city,
-      role
+      role,
+      email: email || null
     });
 
     await worker.save();
@@ -144,6 +145,38 @@ const updateWorkerStatus = async (req, res) => {
     res.json(worker);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// =====================
+// UPDATE WORKER INFO
+// =====================
+const updateWorker = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nomcomplet, phone, email, city, role, status } = req.body;
+
+    if (role && !['technicien', 'videur'].includes(role)) {
+      return res.status(400).json({ message: "Role invalide" });
+    }
+    if (status && !['actif', 'inactif', 'en intervention'].includes(status)) {
+      return res.status(400).json({ message: "Statut invalide" });
+    }
+
+    const updates = { updated_at: Date.now() };
+    if (nomcomplet !== undefined) updates.nomcomplet = nomcomplet;
+    if (phone     !== undefined) updates.phone      = phone;
+    if (email     !== undefined) updates.email      = email;
+    if (city      !== undefined) updates.city       = city;
+    if (role      !== undefined) updates.role       = role;
+    if (status    !== undefined) updates.status     = status;
+
+    const worker = await Worker.findByIdAndUpdate(id, updates, { new: true });
+    if (!worker) return res.status(404).json({ message: "Worker non trouvé" });
+
+    res.json({ message: "Worker mis à jour", worker });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -259,6 +292,7 @@ export default {
   getWorkersByStatus,
   getWorkerDashboardStats,
   updateWorkerStatus,
+  updateWorker,
   deleteWorker,
   getWorkerHistory,
   getWorkerProfile

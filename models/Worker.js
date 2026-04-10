@@ -5,6 +5,7 @@ const { Schema } = mongoose;
 const workerSchema = new Schema({
   nomcomplet: { type: String, required: true },
   phone: { type: String, required: true },
+  email: { type: String, default: null },
   city: { type: String, required: true },
   role: {
     type: String,

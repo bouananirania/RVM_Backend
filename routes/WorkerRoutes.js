@@ -10,6 +10,7 @@ router.get('/profile/:id', workerController.getWorkerProfile);
 router.get('/history/:id', workerController.getWorkerHistory);
 router.get('/role/:role', workerController.getWorkersByRole);
 router.get('/status/:status', workerController.getWorkersByStatus);
+router.put('/update/:id', workerController.updateWorker);
 router.put('/update-status/:id', workerController.updateWorkerStatus);
 router.delete('/delete/:id', workerController.deleteWorker);
 
