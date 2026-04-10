@@ -85,29 +85,29 @@ const updateNotificationStatus = async (req, res) => {
 
     await notification.save();
 
-    // ── Envoi email au worker assigné ──────────────────────────────────────
-    if (status === 'traitée' && worker_name) {
-      try {
-        const assignedWorker = await Worker.findOne({ nomcomplet: worker_name });
-        if (assignedWorker && assignedWorker.email) {
-          // Récupérer les infos machine pour l'email
-          const machine = await Machine.findById(notification.machine);
-          await sendAssignmentEmail(assignedWorker.email, assignedWorker.nomcomplet, {
-            type: notification.type,
-            message: notification.message,
-            machineId: machine?.machine_id || null,
-            machineName: machine?.name || null,
-            machineCity: machine?.city || null,
-          });
-        }
-      } catch (mailErr) {
-        // L'email ne bloque pas la réponse API
-        console.error('Erreur envoi email:', mailErr.message);
-      }
-    }
-    // ─────────────────────────────────────────────────────────
-
+    // ── Répondre immédiatement, email en arrière-plan ──────────────────────
     res.json(notification);
+
+    // Fire & forget — ne bloque pas la réponse
+    if (status === 'traitée' && worker_name) {
+      Worker.findOne({ nomcomplet: worker_name })
+        .then(async (assignedWorker) => {
+          if (assignedWorker && assignedWorker.email) {
+            const machine = await Machine.findById(notification.machine);
+            await sendAssignmentEmail(assignedWorker.email, assignedWorker.nomcomplet, {
+              type: notification.type,
+              message: notification.message,
+              machineId: machine?.machine_id || null,
+              machineName: machine?.name || null,
+              machineCity: machine?.city || null,
+            });
+          }
+        })
+        .catch((mailErr) => {
+          console.error('Erreur envoi email (background):', mailErr.message);
+        });
+    }
+    // ───────────────────────────────────────────────────────────────────────
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
