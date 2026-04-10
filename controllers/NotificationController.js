@@ -70,11 +70,13 @@ const updateNotificationStatus = async (req, res) => {
       }
     }
 
+    const isFirstTreatment = status === 'traitée' && notification.status !== 'traitée';
+
     notification.status = status;
-    if (worker_name) {
+    if (worker_name && isFirstTreatment) {
       notification.worker_name = worker_name;
 
-      // Ajouter le nom de la personne au message pour que ce soit visible dans l'historique
+      // Ajouter le nom une seule fois au message
       if (notification.type === 'panne') {
         notification.message = `${notification.message} (Réparation effectuée par le technicien : ${worker_name})`;
       } else {
@@ -89,7 +91,7 @@ const updateNotificationStatus = async (req, res) => {
     res.json(notification);
 
     // Fire & forget — ne bloque pas la réponse
-    if (status === 'traitée' && worker_name) {
+    if (isFirstTreatment && worker_name) {
       Worker.findOne({ nomcomplet: worker_name })
         .then(async (assignedWorker) => {
           if (assignedWorker && assignedWorker.email) {
@@ -101,10 +103,13 @@ const updateNotificationStatus = async (req, res) => {
               machineName: machine?.name || null,
               machineCity: machine?.city || null,
             });
+            console.log(`📧 Email envoyé à ${assignedWorker.email}`);
+          } else if (assignedWorker && !assignedWorker.email) {
+            console.log(`⚠️  Worker '${worker_name}' n'a pas d'email en base — email non envoyé`);
           }
         })
         .catch((mailErr) => {
-          console.error('Erreur envoi email (background):', mailErr.message);
+          console.error('❌ Erreur envoi email (background):', mailErr.message);
         });
     }
     // ───────────────────────────────────────────────────────────────────────
