@@ -1,23 +1,15 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+
+// Initialise l'instance Resend avec la clé API
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * Envoie un email de notification à un worker assigné.
+ * Envoie un email de notification à un worker assigné via Resend API (HTTP, non bloqué par Render).
  * @param {string} to       - Adresse email du worker
  * @param {string} name     - Nom complet du worker
  * @param {object} notif    - Objet notification (type, message, machine)
  */
 export const sendAssignmentEmail = async (to, name, notif) => {
-  // Créer le transporter ici pour lire les env vars au moment de l'appel
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.MAIL_USER,
-      pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
-    },
-    tls: { rejectUnauthorized: false }
-  });
   const typeLabel = {
     panne: '🔧 Panne machine',
     remplissage: '🗑️ Bac plein (100%)',
@@ -65,10 +57,18 @@ export const sendAssignmentEmail = async (to, name, notif) => {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"Système RVM" <${process.env.MAIL_USER}>`,
-    to,
-    subject,
-    html,
+  // Avec le plan gratuit Resend, l'email envoyé par défaut est à partir de onboarding@resend.dev
+  // Note : Il ne peut envoyer QUE vers l'adresse email associée au compte Resend, donc c'est parfait pour ton test !
+  const { data, error } = await resend.emails.send({
+    from: 'RVM System <onboarding@resend.dev>',
+    to: [to],
+    subject: subject,
+    html: html,
   });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  return data;
 };
