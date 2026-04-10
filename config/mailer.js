@@ -1,13 +1,5 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
-
 /**
  * Envoie un email de notification à un worker assigné.
  * @param {string} to       - Adresse email du worker
@@ -15,6 +7,17 @@ const transporter = nodemailer.createTransport({
  * @param {object} notif    - Objet notification (type, message, machine)
  */
 export const sendAssignmentEmail = async (to, name, notif) => {
+  // Créer le transporter ici pour lire les env vars au moment de l'appel
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
+    },
+    tls: { rejectUnauthorized: false }
+  });
   const typeLabel = {
     panne: '🔧 Panne machine',
     remplissage: '🗑️ Bac plein (100%)',
