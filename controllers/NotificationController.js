@@ -123,6 +123,16 @@ const updateNotificationStatus = async (req, res) => {
       ).then(worker => {
         if (worker) console.log(`✅ Worker ${worker.nomcomplet} a fini et est de nouveau actif.`);
       }).catch(err => console.error('Erreur libération worker:', err.message));
+
+      // 2. Repasser la machine à "actif" si c'était une panne
+      if (notification.type === 'panne') {
+        Machine.findByIdAndUpdate(
+          notification.machine,
+          { status: 'actif', updated_at: Date.now() }
+        ).then(machine => {
+          if (machine) console.log(`✅ Machine ${machine.name} est de nouveau active suite à réparation.`);
+        }).catch(err => console.error('Erreur libération machine:', err.message));
+      }
     }
     // ───────────────────────────────────────────────────────────────────────
   } catch (error) {
@@ -224,6 +234,15 @@ const completeNotificationViaEmail = async (req, res) => {
         { status: 'actif' }
       );
       console.log(`✅ Worker ${notification.worker_name} a fini via email et est de nouveau actif.`);
+    }
+
+    // On libère la machine si c'était une panne
+    if (notification.type === 'panne') {
+      await Machine.findByIdAndUpdate(
+        notification.machine,
+        { status: 'actif', updated_at: Date.now() }
+      );
+      console.log(`✅ Machine remise en actif suite à réparation via email.`);
     }
 
     res.status(200).send(`
