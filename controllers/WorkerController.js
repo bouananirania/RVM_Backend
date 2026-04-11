@@ -228,6 +228,12 @@ const getWorkerProfile = async (req, res) => {
     );
     const machines_count = machineIds.size;
 
+    // Tâches en cours (assignées mais pas encore traitées)
+    const currentTasks = await Notification.find({
+      status: 'assignée',
+      worker_name: worker.nomcomplet
+    }).populate('machine', 'machine_id name city');
+
     res.json({
       _id: worker._id,
       nomcomplet: worker.nomcomplet,
@@ -238,6 +244,7 @@ const getWorkerProfile = async (req, res) => {
       status_label: statusMap[worker.status] || worker.status,
       machines: machines_count,
       taches_completees,
+      taches_actuelles: currentTasks,
       created_at: worker.created_at
     });
 
