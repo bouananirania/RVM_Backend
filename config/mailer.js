@@ -49,6 +49,15 @@ export const sendAssignmentEmail = async (to, name, notif) => {
             <td style="padding: 10px 14px;">${new Date().toLocaleString('fr-FR')}</td>
           </tr>
         </table>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.BASE_URL || 'https://rvm-backend-oaot.onrender.com'}/notif/complete/${notif.notifId}" 
+             style="background-color: #34a853; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+             ✅ Confirmer la fin de l'intervention
+          </a>
+          <p style="color: #666; font-size: 12px; margin-top: 10px;">Cliquez sur ce bouton uniquement lorsque vous avez terminé la tâche sur place.</p>
+        </div>
+
         <p style="color: #555; font-size: 13px;">Merci de prendre en charge cette intervention dans les meilleurs délais.</p>
       </div>
       <div style="background-color: #f5f5f5; padding: 14px; text-align: center; font-size: 12px; color: #888;">

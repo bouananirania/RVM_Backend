@@ -10,7 +10,13 @@ router.get(
   notificationController.getUnreadNotifications
 );
 
-// Mettre à jour le statut d'une notification
+// Route appelée par le travailleur DANS SON EMAIL lorsqu'il clique sur finir
+router.get(
+  '/complete/:id',
+  notificationController.completeNotificationViaEmail
+);
+
+// Mettre à jour le statut d'une notification (Postman/Dashboard)
 router.put(
   '/status/:id',
   notificationController.updateNotificationStatus

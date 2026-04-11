@@ -32,85 +32,97 @@ const updateNotificationStatus = async (req, res) => {
     const { id } = req.params;
     const { status, worker_name } = req.body;
 
-    if (!['envoyée', 'traitée'].includes(status)) {
+    if (!['envoyée', 'assignée', 'traitée'].includes(status)) {
       return res.status(400).json({ message: "Statut invalide" });
     }
 
     const notification = await Notification.findById(id);
     if (!notification) return res.status(404).json({ message: "Notification non trouvée" });
 
-    // Vérification du nom du technicien ou videur lors de la clôture
-    if (status === 'traitée' && notification.status !== 'traitée') {
-      if (notification.type === 'panne' && !worker_name) {
-        return res.status(400).json({ message: "Le nom du technicien est requis pour traiter une panne." });
-      }
-      if (notification.type === 'remplissage' && !worker_name) {
-        return res.status(400).json({ message: "Le nom du videur est requis pour traiter un remplissage." });
+    // Validation du nom si "assignée" ou "traitée" (si ce n'est pas déjà le cas)
+    if (status === 'assignée' || status === 'traitée') {
+      if ((notification.type === 'panne' || notification.type === 'remplissage' || notification.type === 'alerte_80') && !worker_name && !notification.worker_name) {
+         return res.status(400).json({ message: "Le nom du travailleur est requis." });
       }
 
-      if (worker_name) {
-        // Vérifier si le travailleur existe dans la base de données
-        const worker = await Worker.findOne({ nomcomplet: worker_name });
-        
+      const activeWorkerName = worker_name || notification.worker_name;
+      
+      if (activeWorkerName) {
+        const worker = await Worker.findOne({ nomcomplet: activeWorkerName });
         if (!worker) {
-          return res.status(404).json({ message: `Le travailleur '${worker_name}' n'existe pas dans la base de données.` });
+          return res.status(404).json({ message: `Le travailleur '${activeWorkerName}' n'existe pas.` });
         }
 
-        if (worker.status !== 'actif') {
-          return res.status(400).json({ message: `Le travailleur '${worker_name}' n'est pas actif.` });
+        // On vérifie qu'il est actif SEULEMENT quand on l'assigne pour la première fois
+        if (status === 'assignée' && notification.status !== 'assignée' && worker.status !== 'actif') {
+          return res.status(400).json({ message: `Le travailleur '${activeWorkerName}' n'est pas disponible (il est '${worker.status}').` });
         }
 
-        // Vérification des rôles
         if (notification.type === 'panne' && worker.role !== 'technicien') {
-          return res.status(400).json({ message: `Le travailleur '${worker_name}' n'a pas le rôle de technicien.` });
+          return res.status(400).json({ message: `Le travailleur n'a pas le rôle de technicien.` });
         }
         if ((notification.type === 'remplissage' || notification.type === 'alerte_80') && worker.role !== 'videur') {
-          return res.status(400).json({ message: `Le travailleur '${worker_name}' n'a pas le rôle de videur.` });
+          return res.status(400).json({ message: `Le travailleur n'a pas le rôle de videur.` });
         }
       }
     }
 
-    const isFirstTreatment = status === 'traitée' && notification.status !== 'traitée';
+    const isFirstTimeAssigned = status === 'assignée' && notification.status !== 'assignée';
+    const isFinishedNow = status === 'traitée' && notification.status !== 'traitée';
 
     notification.status = status;
-    if (worker_name && isFirstTreatment) {
+    if (worker_name) {
       notification.worker_name = worker_name;
+    }
 
-      // Ajouter le nom une seule fois au message
+    // Mettre à jour le message SEULEMENT quand c'est fini ('traitée')
+    if (isFinishedNow && notification.worker_name) {
       if (notification.type === 'panne') {
-        notification.message = `${notification.message} (Réparation effectuée par le technicien : ${worker_name})`;
+        notification.message = `${notification.message} (Réparation effectuée par le technicien : ${notification.worker_name})`;
       } else {
-        notification.message = `${notification.message} (Bac vidé par : ${worker_name})`;
+        notification.message = `${notification.message} (Bac vidé par : ${notification.worker_name})`;
       }
     }
     notification.updated_at = Date.now();
 
     await notification.save();
 
-    // ── Répondre immédiatement, email en arrière-plan ──────────────────────
-    res.json(notification);
+    // ── GESTION DU STATUT DU WORKER ET EMAIL EN ARRIÈRE-PLAN ──────────────────────
+    res.json(notification); // Répond au client immédiatement
 
-    // Fire & forget — ne bloque pas la réponse
-    if (isFirstTreatment && worker_name) {
-      Worker.findOne({ nomcomplet: worker_name })
-        .then(async (assignedWorker) => {
-          if (assignedWorker && assignedWorker.email) {
-            const machine = await Machine.findById(notification.machine);
-            await sendAssignmentEmail(assignedWorker.email, assignedWorker.nomcomplet, {
-              type: notification.type,
-              message: notification.message,
-              machineId: machine?.machine_id || null,
-              machineName: machine?.name || null,
-              machineCity: machine?.city || null,
-            });
-            console.log(`📧 Email envoyé à ${assignedWorker.email}`);
-          } else if (assignedWorker && !assignedWorker.email) {
-            console.log(`⚠️  Worker '${worker_name}' n'a pas d'email en base — email non envoyé`);
-          }
-        })
-        .catch((mailErr) => {
-          console.error('❌ Erreur envoi email (background):', mailErr.message);
-        });
+    if (isFirstTimeAssigned && notification.worker_name) {
+      // 1. Passer le worker à "en intervention"
+      Worker.findOneAndUpdate(
+        { nomcomplet: notification.worker_name },
+        { status: 'en intervention' },
+        { new: true }
+      ).then(async (assignedWorker) => {
+        if (assignedWorker) console.log(`👷 Worker ${assignedWorker.nomcomplet} est maintenant en intervention.`);
+        
+        // 2. Envoyer l'email
+        if (assignedWorker && assignedWorker.email) {
+          const machine = await Machine.findById(notification.machine);
+          await sendAssignmentEmail(assignedWorker.email, assignedWorker.nomcomplet, {
+            notifId: notification._id.toString(),
+            type: notification.type,
+            message: notification.message,
+            machineId: machine?.machine_id || null,
+            machineName: machine?.name || null,
+            machineCity: machine?.city || null,
+          });
+          console.log(`📧 Email envoyé à ${assignedWorker.email}`);
+        }
+      }).catch(err => console.error('Erreur assignation:', err.message));
+    }
+
+    if (isFinishedNow && notification.worker_name) {
+      // 1. Repasser le worker à "actif" (dispo)
+      Worker.findOneAndUpdate(
+        { nomcomplet: notification.worker_name },
+        { status: 'actif' }
+      ).then(worker => {
+        if (worker) console.log(`✅ Worker ${worker.nomcomplet} a fini et est de nouveau actif.`);
+      }).catch(err => console.error('Erreur libération worker:', err.message));
     }
     // ───────────────────────────────────────────────────────────────────────
   } catch (error) {
@@ -173,11 +185,68 @@ const getNotificationsByMachine = async (req, res) => {
 
 
 // =====================
+// CONFIRMATION VIA EMAIL (GET)
+// =====================
+const completeNotificationViaEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const notification = await Notification.findById(id);
+
+    if (!notification) {
+      return res.status(404).send('<h1>Erreur</h1><p>Notification introuvable.</p>');
+    }
+
+    if (notification.status === 'traitée') {
+      return res.status(200).send(`
+        <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+          <h1 style="color: #4CAF50;">Déjà fait !</h1>
+          <p>Cette intervention a déjà été clôturée.</p>
+        </div>
+      `);
+    }
+
+    // On passe à traitée
+    notification.status = 'traitée';
+    if (notification.worker_name) {
+      if (notification.type === 'panne') {
+        notification.message = `${notification.message} (Réparation effectuée par le technicien : ${notification.worker_name})`;
+      } else {
+        notification.message = `${notification.message} (Bac vidé par : ${notification.worker_name})`;
+      }
+    }
+    notification.updated_at = Date.now();
+    await notification.save();
+
+    // On libère le worker
+    if (notification.worker_name) {
+      await Worker.findOneAndUpdate(
+        { nomcomplet: notification.worker_name },
+        { status: 'actif' }
+      );
+      console.log(`✅ Worker ${notification.worker_name} a fini via email et est de nouveau actif.`);
+    }
+
+    res.status(200).send(`
+      <div style="font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f9f9f9; padding: 40px; border-radius: 10px; max-width: 500px; margin-left: auto; margin-right: auto; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);">
+        <h1 style="color: #34a853; font-size: 28px;">✅ Succès !</h1>
+        <p style="font-size: 16px; color: #555;">La tâche a été officiellement clôturée.</p>
+        <p style="font-size: 14px; color: #888;">Vous êtes maintenant de nouveau disponible pour d'autres interventions. Vous pouvez fermer cette page.</p>
+      </div>
+    `);
+
+  } catch (error) {
+    console.error("Erreur complete via email:", error);
+    res.status(500).send('<h1>Erreur serveur</h1>');
+  }
+};
+
+// =====================
 // EXPORT DEFAULT
 // =====================
 export default {
   getAllNotifications,
   getUnreadNotifications,
   getNotificationsByMachine,
-  updateNotificationStatus
+  updateNotificationStatus,
+  completeNotificationViaEmail
 };

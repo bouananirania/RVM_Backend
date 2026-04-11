@@ -5,7 +5,7 @@ const notificationSchema = new Schema({
   machine: { type: Schema.Types.ObjectId, ref: 'Machine', required: true },
   type: { type: String, enum: ['panne', 'remplissage', 'alerte_80'], required: true },
   message: { type: String, required: true },
-  status: { type: String, enum: ['envoyée', 'traitée'], default: 'envoyée' },
+  status: { type: String, enum: ['envoyée', 'assignée', 'traitée'], default: 'envoyée' },
   worker_name: { type: String },
 
   created_at: { type: Date, default: Date.now },
