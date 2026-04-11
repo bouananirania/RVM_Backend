@@ -10,6 +10,8 @@ const userSchema = new Schema({
   email: { type: String, required: true, unique: true },
   phone: { type: String },
   city: { type: String, required: true },
+  resetPasswordCode: { type: String },
+  resetPasswordExpires: { type: Date },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
 });

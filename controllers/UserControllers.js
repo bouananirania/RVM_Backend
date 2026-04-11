@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
+import { sendPasswordResetEmail } from '../config/mailer.js';
 
 // =====================
 // CREATE USER (ADMIN ONLY)
@@ -92,11 +93,81 @@ const changePassword = async (req, res) => {
 };
 
 // =====================
+// FORGOT PASSWORD (Demande de réinitialisation)
+// =====================
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable avec cette adresse e-mail." });
+    }
+
+    // Générer un code à 6 chiffres
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Date d'expiration (10 minutes)
+    const expirationDate = new Date();
+    expirationDate.setMinutes(expirationDate.getMinutes() + 10);
+
+    user.resetPasswordCode = resetCode;
+    user.resetPasswordExpires = expirationDate;
+    await user.save();
+
+    // Envoyer l'email
+    await sendPasswordResetEmail(user.email, resetCode);
+
+    res.json({ message: "Un code de réinitialisation a été envoyé à votre adresse e-mail." });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
+// RESET PASSWORD (Vérification du code et validation du nouveau mdp)
+// =====================
+const resetPassword = async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    const user = await User.findOne({ 
+      email,
+      resetPasswordCode: code,
+      resetPasswordExpires: { $gt: new Date() } // Vérifie que le code n'a pas expiré
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Code de réinitialisation invalide ou expiré." });
+    }
+
+    // Hasher le nouveau mot de passe
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    // Mettre à jour l'utilisateur
+    user.password_hash = hashed;
+    user.resetPasswordCode = undefined;
+    user.resetPasswordExpires = undefined;
+    user.updated_at = new Date();
+    
+    await user.save();
+
+    res.json({ message: "Mot de passe réinitialisé avec succès." });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// =====================
 // EXPORT DEFAULT
 // =====================
 export default {
   createUser,
   login,
   logout,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 };

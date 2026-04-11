@@ -81,3 +81,46 @@ export const sendAssignmentEmail = async (to, name, notif) => {
   
   return data;
 };
+
+/**
+ * Envoie un email contenant le code de réinitialisation du mot de passe.
+ * @param {string} to - Adresse email de l'utilisateur
+ * @param {string} code - Code de réinitialisation à 6 chiffres
+ */
+export const sendPasswordResetEmail = async (to, code) => {
+  const subject = `RVM – Réinitialisation de votre mot de passe`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+      <div style="background-color: #1a73e8; padding: 24px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 22px;">🔑 Système RVM</h1>
+      </div>
+      <div style="padding: 28px; text-align: center;">
+        <p style="font-size: 16px;">Bonjour,</p>
+        <p>Vous avez demandé à réinitialiser votre mot de passe. Voici votre code de sécurité :</p>
+        
+        <div style="margin: 30px 0;">
+          <span style="background-color: #f5f5f5; padding: 15px 30px; font-size: 28px; font-weight: bold; letter-spacing: 5px; border-radius: 8px; border: 2px dashed #1a73e8; color: #333;">
+            ${code}
+          </span>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">Ce code est valide pendant 10 minutes. Ne le partagez avec personne.</p>
+        <p style="color: #888; font-size: 12px; margin-top: 20px;">Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer cet e-mail.</p>
+      </div>
+    </div>
+  `;
+
+  const { data, error } = await resend.emails.send({
+    from: 'RVM System <onboarding@resend.dev>',
+    to: [to],
+    subject: subject,
+    html: html,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  return data;
+};
