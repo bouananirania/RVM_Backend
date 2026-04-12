@@ -15,6 +15,7 @@ router.get('/', machineController.getAllMachines);
 // Search machines (status, location)
 router.get('/search', machineController.searchMachines);
 
+
 // Dashboard stats (aluminium kg, plastique kg, nb machines)
 router.get('/stats', machineController.getDashboardStats);
 

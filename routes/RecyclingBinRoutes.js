@@ -10,9 +10,6 @@ router.get('/', binController.getAllBins);
 router.get('/machine/:machineId', binController.getBinsByMachine);
 
 
-
-
-
 // Mettre à jour le niveau d'un bac (par exemple via les capteurs de la vraie RVM)
 router.put('/:id', binController.updateBin);
 
